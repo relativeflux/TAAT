@@ -1,0 +1,13 @@
+# System
+**/.DS_Store
+**/Thumbs.db
+
+# Python
+__pycache__
+pip-selfcheck.json
+
+# Project
+*.wav
+*.zip
+*.log
+*.ipynb
