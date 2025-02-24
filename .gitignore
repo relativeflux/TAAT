@@ -3,6 +3,10 @@
 **/Thumbs.db
 
 # Python
+venv/
+.venv/
+env/
+.env/
 __pycache__
 pip-selfcheck.json
 
