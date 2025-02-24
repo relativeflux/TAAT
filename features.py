@@ -13,23 +13,23 @@ def extract_features(buffer, sr, fft_size, hop_length):
     db_spect = librosa.amplitude_to_db(stft, ref=np.max)
 
     # Mel Spectrogram
-    mel_spect = librosa.feature.melspectrogram(buffer, sr=sr)
+    mel_spect = librosa.feature.melspectrogram(y=buffer, sr=sr)
     db_mel_spect = librosa.amplitude_to_db(mel_spect, ref=np.max)
 
     # Spectral centroid
-    spectral_centroids = librosa.feature.spectral_centroid(buffer, sr=sr)[0]
+    spectral_centroids = librosa.feature.spectral_centroid(y=buffer, sr=sr)[0]
     #spectral_centroids_delta = librosa.feature.delta(spectral_centroids)
     #spectral_centroids_accelerate = librosa.feature.delta(spectral_centroids, order=2)
 
     # Spectral rolloff
-    spectral_rolloff = librosa.feature.spectral_rolloff(buffer, sr=sr)[0]
+    spectral_rolloff = librosa.feature.spectral_rolloff(y=buffer, sr=sr)[0]
 
     # Spectral flux
     spectral_flux = librosa.onset.onset_strength(y=buffer, sr=sr)
 
     # Zero crossings
     zero_crossings = librosa.zero_crossings(buffer, pad=False)
-    zero_crossing_rate = librosa.feature.zero_crossing_rate(buffer)[0]
+    zero_crossing_rate = librosa.feature.zero_crossing_rate(buffer)
 
     # Chromagram
     chromagram = librosa.feature.chroma_stft(buffer, sr=sr, hop_length=hop_length)
@@ -41,5 +41,5 @@ def extract_features(buffer, sr, fft_size, hop_length):
         "spectral_rolloff": np.mean(spectral_rolloff),
         "spectral_flux": np.mean(spectral_flux),
         "zero_crossings": np.sum(zero_crossings),
-        "zero_crossing_rate": np.mean(zero_crossing_rate),
+        "zero_crossing_rate": np.mean(zero_crossing_rate[0]),
     }
