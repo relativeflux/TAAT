@@ -32,7 +32,7 @@ def extract_features(buffer, sr, fft_size, hop_length):
     zero_crossing_rate = librosa.feature.zero_crossing_rate(buffer)
 
     # Chromagram
-    chromagram = librosa.feature.chroma_stft(buffer, sr=sr, hop_length=hop_length)
+    chromagram = librosa.feature.chroma_stft(y=buffer, sr=sr, hop_length=hop_length)
 
     return {
         "spectrum": np.mean(db_spect[0]),
