@@ -34,7 +34,7 @@ def extract_features(buffer, sr, fft_size, hop_length):
     # Chromagram
     chromagram = librosa.feature.chroma_stft(y=buffer, sr=sr, hop_length=hop_length)
 
-    return {
+    features = {
         "spectrum": np.mean(db_spect[0]),
         "mel_spectrogram": np.mean(db_mel_spect[0]),
         "spectral_centroid": np.mean(spectral_centroids),
@@ -43,3 +43,8 @@ def extract_features(buffer, sr, fft_size, hop_length):
         "zero_crossings": np.sum(zero_crossings),
         "zero_crossing_rate": np.mean(zero_crossing_rate[0]),
     }
+
+    for (key, value) in features.items():
+        features[key] = value.item()
+
+    return features
