@@ -28,4 +28,4 @@ def get_clusters(X):
     labels = model.fit_predict(X, y=None)
     linkage_matrix = get_linkage_matrix(model)
 
-    return labels, linkage_matrix
+    return labels.tolist(), linkage_matrix.tolist()

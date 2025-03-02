@@ -18,22 +18,21 @@ FFT_SIZE = 2048
 HOP_LENGTH = 512
 
 
-def save_outputs(dir, features, labels):
+def save_outputs(dir, features, labels, linkage_matrix):
+    args = locals()
     # Create output directory.
     outdir = os.path.join("./output", dir)
     if not os.path.exists(outdir):
         os.makedirs(outdir)
-    # Save feature data in JSON format.
-    with open(os.path.join(outdir, "features.json"), "w", encoding="utf-8") as f:
-        json.dump(features, f, ensure_ascii=False, indent=3)
-    with open(os.path.join(outdir, "labels.json"), "w", encoding="utf-8") as f:
-        json.dump(labels, f, ensure_ascii=False, indent=3)
-
-def show_dendrogram(linkage_matrix, title="", xlabel="", **kwargs):
-    plt.title(title)
+    # Saving data as JSON.
+    for (key, val) in list(args.items())[1:]:
+        with open(os.path.join(outdir, f"{key}.json"), "w", encoding="utf-8") as f:
+            json.dump(val, f, ensure_ascii=False, indent=3)
+    # Save dendrogram as PNG image.
+    plt.title(dir)
     dendrogram(linkage_matrix, truncate_mode="level", p=3)
-    plt.xlabel(xlabel)
-    plt.show()
+    #plt.xlabel(xlabel)
+    plt.savefig(os.path.join(outdir, "clusters.png"))
 
 def parse_features(features):
     parsed = []
@@ -54,37 +53,24 @@ def run(source_folder,
         hop_length=HOP_LENGTH,
         *args, **kwargs):
     features = {} #[]
-    #for filename in glob.glob(source_folder + '/*'):
     for filename in sort_source_files(source_folder):
         features[filename] = []
         (_, sr, audio) = load(filename)
         samples_per_chunk = sr * chunk_length
         i = 0
-        print(f"Extracting features for file {filename}")
+        print(f"Extracting features for file {filename}...")
         while i < len(audio):
             buffer = audio[i:i+samples_per_chunk]
             ext = extract_features(buffer, sr, fft_size, hop_length)
-            #ext = [value.item() for _, value in ext.items()]
             features[filename].append(ext)
             i += samples_per_chunk
     X = parse_features(features)
     print("Computing clusters...")
     (labels, linkage_matrix) = get_clusters(X)
-    labels = labels.tolist()
     output_folder_name = os.path.basename(source_folder)
-    print("Saving features to disk...")
-    save_outputs(output_folder_name, features, labels)
-    plt.title(output_folder_name)
-    dendrogram(linkage_matrix, truncate_mode="level", p=3)
-    #plt.xlabel(xlabel)
-    plt.savefig(os.path.join("./output", output_folder_name, "clusters.png"))
+    print("Saving data to disk...")
+    save_outputs(output_folder_name, features, labels, linkage_matrix)
     print("Done.")
-    '''
-    if output_dest == None:
-        save_outputs(source_folder, features)
-    elif output_dest == "stdout"
-        return features
-    '''
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Tape Archive Analysis Toolkit (TAAT)")
