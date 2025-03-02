@@ -36,10 +36,10 @@ def save_outputs(dir, features, labels, linkage_matrix):
 
 def parse_features(features):
     parsed = []
-    for (_, value) in features.items():
-        for dict in value:
-            lis = [val for _, val in dict.items()]
-            parsed.append(lis)
+    for dict in features:
+        lis = [val for key, val in dict.items()
+                    if key not in ['filename', 'timestamp']]
+        parsed.append(lis)
     return parsed
 
 def sort_source_files(source_folder):
@@ -52,17 +52,16 @@ def run(source_folder,
         fft_size=FFT_SIZE,
         hop_length=HOP_LENGTH,
         *args, **kwargs):
-    features = {} #[]
+    features = [] #{}
     for filename in sort_source_files(source_folder):
-        features[filename] = []
         (_, sr, audio) = load(filename)
         samples_per_chunk = sr * chunk_length
         i = 0
         print(f"Extracting features for file {filename}...")
         while i < len(audio):
             buffer = audio[i:i+samples_per_chunk]
-            ext = extract_features(buffer, sr, fft_size, hop_length)
-            features[filename].append(ext)
+            ext = extract_features(filename, i, buffer, sr, fft_size, hop_length)
+            features.append(ext)
             i += samples_per_chunk
     X = parse_features(features)
     print("Computing clusters...")

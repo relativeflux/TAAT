@@ -3,7 +3,9 @@ import numpy as np
 import librosa
 
 
-def extract_features(buffer, sr, fft_size, hop_length):
+def extract_features(filename, s, buffer, sr, fft_size, hop_length):
+
+    timestamp = librosa.samples_to_time(s, sr=sr)
 
     # Amplitude spectrum (STFT)
     stft = librosa.stft(buffer, n_fft=fft_size, hop_length=hop_length)
@@ -35,6 +37,8 @@ def extract_features(buffer, sr, fft_size, hop_length):
     chromagram = librosa.feature.chroma_stft(y=buffer, sr=sr, hop_length=hop_length)
 
     features = {
+        "filename": filename,
+        "timestamp": timestamp,
         "spectrum": np.mean(db_spect[0]),
         "mel_spectrogram": np.mean(db_mel_spect[0]),
         "spectral_centroid": np.mean(spectral_centroids),
@@ -45,6 +49,7 @@ def extract_features(buffer, sr, fft_size, hop_length):
     }
 
     for (key, value) in features.items():
-        features[key] = value.item()
+        if not isinstance(value, str):
+            features[key] = value.item()
 
     return features
