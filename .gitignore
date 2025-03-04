@@ -8,11 +8,13 @@ venv/
 env/
 .env/
 __pycache__
+.ipynb_checkpoints
 pip-selfcheck.json
 
 # Project
 /output/*
 !/output/.gitkeep
+*.html
 *.wav
 *.zip
 *.log

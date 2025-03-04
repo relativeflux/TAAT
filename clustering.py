@@ -1,3 +1,4 @@
+import json
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
 
@@ -29,3 +30,41 @@ def get_clusters(X):
     linkage_matrix = get_linkage_matrix(model)
 
     return labels.tolist(), linkage_matrix.tolist()
+
+def create_tree(linked):
+    ## inner func to recurvise-ly walk the linkage matrix
+    def recurTree(tree):
+        k = tree['name']
+        ## no children for this node
+        if k not in inter:
+            return
+        for n in inter[k]:
+            ## build child nodes
+            node = {
+                "name": n,
+                "parent": k,
+                "children": []
+            }
+            ## add to children
+            tree['children'].append(node)
+            ## next recursion
+            recurTree(node)      
+    
+    #num_rows, _ = linked.shape
+    num_rows = len(linked)
+    inter = {}
+    i = 0
+    # loop linked matrix convert to dictionary
+    for row in linked:
+        i += 1
+        inter[float(i + num_rows)] = [row[0],row[1]]
+
+    # start tree data structure
+    tree = {
+        "name": float(i + num_rows),
+        "parent": None,
+        "children": []
+    }
+    # start recursion
+    recurTree(tree);
+    return tree

@@ -8,7 +8,7 @@ from scipy.cluster.hierarchy import dendrogram
 
 from audio import load, stream #load_audio
 from features import extract_features
-from clustering import get_clusters
+from clustering import get_clusters, create_tree
 
 
 OUTPUT_DEST = None #"stdout"
@@ -33,6 +33,10 @@ def save_outputs(dir, features, labels, linkage_matrix):
     dendrogram(linkage_matrix, truncate_mode="level", p=3)
     #plt.xlabel(xlabel)
     plt.savefig(os.path.join(outdir, "clusters.png"))
+    tree = create_tree(linkage_matrix)
+    with open(os.path.join(outdir, "tree.js"), "a", encoding="utf-8") as f:
+        f.write('const data = ')
+        json.dump(tree, f, ensure_ascii=False, indent=3)
 
 def parse_features(features):
     parsed = []
