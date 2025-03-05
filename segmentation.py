@@ -4,6 +4,11 @@ from scipy.spatial import distance
 from matplotlib import pyplot as plt
 
 from audio import load
+from features import extract_features
+
+
+# https://www.audiolabs-erlangen.de/resources/MIR/FMP/C4/C4S4_NoveltySegmentation.html
+# https://meinardmueller.github.io/libfmp/build/html/_modules/libfmp/c4/c4s2_ssm.html#compute_sm_from_filename
 
 def cosine_distance(u, v):
     # Calculate cosine similarity
@@ -31,13 +36,10 @@ def novelty_segmentation(audio, sr, chunk_length, fft_size, hop_length):
     i = 0
     while i < len(audio):
         buffer = audio[i:i+samples_per_chunk]
-        # STFT
-        stft = librosa.stft(buffer, n_fft=fft_size, hop_length=hop_length)
-        stft = np.abs(stft)
-        # DB Spectrum.
-        db_spect = librosa.amplitude_to_db(stft, ref=np.max)
-        db_spect = np.mean(db_spect[0])
-        params.append(db_spect)
+        ext = extract_features("", i, buffer, sr, fft_size, hop_length)
+        ext = [val for key, val in ext.items()
+                   if key not in ['filename', 'timestamp']]
+        params.append(ext)
         i += samples_per_chunk
     dim = len(params)
     m = np.zeros([dim, dim])
@@ -59,12 +61,9 @@ def test(input):
             m[i,j] = val - input[j]
     return m
 
-def get_segmentation(filepath, chunk_length, fft_size, hop_length):
+def get_segmentation(filename, chunk_length, fft_size, hop_length):
     (_, sr, audio) = load(filename)
     seg = novelty_segmentation(audio, sr, chunk_length, fft_size, hop_length)
     plt.set_cmap("gray")
     plt.imshow(seg, interpolation="none")
     plt.show()
-    
-
-
