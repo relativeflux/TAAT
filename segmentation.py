@@ -6,9 +6,10 @@ from matplotlib import pyplot as plt
 from audio import load
 from features import extract_features
 
+from ssm import compute_sm_from_filename
+
 
 # https://www.audiolabs-erlangen.de/resources/MIR/FMP/C4/C4S4_NoveltySegmentation.html
-# https://meinardmueller.github.io/libfmp/build/html/_modules/libfmp/c4/c4s2_ssm.html#compute_sm_from_filename
 
 def cosine_distance(u, v):
     # Calculate cosine similarity
@@ -61,9 +62,17 @@ def test(input):
             m[i,j] = val - input[j]
     return m
 
+[3, 12, 1, 9]
+
 def get_segmentation(filename, chunk_length, fft_size, hop_length):
     (_, sr, audio) = load(filename)
     seg = novelty_segmentation(audio, sr, chunk_length, fft_size, hop_length)
     plt.set_cmap("gray")
     plt.imshow(seg, interpolation="none")
+    plt.show()
+
+def get_ssm(filename, **kwargs):
+    x, x_duration, X, Fs_feature, S, I = compute_sm_from_filename(filename, **kwargs)
+    plt.set_cmap("gray")
+    plt.imshow(S, interpolation="none")
     plt.show()

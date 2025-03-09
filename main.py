@@ -34,8 +34,7 @@ def save_outputs(dir, features, labels, linkage_matrix):
     #plt.xlabel(xlabel)
     plt.savefig(os.path.join(outdir, "clusters.png"))
     tree = create_tree(linkage_matrix)
-    with open(os.path.join(outdir, "tree.js"), "a", encoding="utf-8") as f:
-        f.write('const data = ')
+    with open(os.path.join(outdir, "tree.json"), "w", encoding="utf-8") as f:
         json.dump(tree, f, ensure_ascii=False, indent=3)
 
 def parse_features(features):
