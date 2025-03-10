@@ -12,7 +12,16 @@ from clustering import get_clusters, create_tree
 
 
 OUTPUT_DEST = None #"stdout"
-DEFAULT_FEATURES = ["spectrogram",]
+DEFAULT_FEATURES = [
+    'spectrogram',
+    'mel_spectrogram',
+    'spectral_centroid',
+    'spectral_rolloff',
+    'spectral_flux',
+    'zero_crossings',
+    'zero_crossings_rate',
+    #'chromogram'
+]
 CHUNK_LENGTH = 8
 FFT_SIZE = 2048
 HOP_LENGTH = 512
@@ -52,10 +61,11 @@ def sort_source_files(source_folder):
 def run(source_folder,
         output_dest=OUTPUT_DEST,
         chunk_length=CHUNK_LENGTH,
+        features=DEFAULT_FEATURES,
         fft_size=FFT_SIZE,
         hop_length=HOP_LENGTH,
         *args, **kwargs):
-    features = [] #{}
+    ext_features = [] #{}
     for filename in sort_source_files(source_folder):
         (_, sr, audio) = load(filename)
         samples_per_chunk = sr * chunk_length
@@ -63,15 +73,15 @@ def run(source_folder,
         print(f"Extracting features for file {filename}...")
         while i < len(audio):
             buffer = audio[i:i+samples_per_chunk]
-            ext = extract_features(filename, i, buffer, sr, fft_size, hop_length)
-            features.append(ext)
+            ext = extract_features(filename, i, buffer, sr, features_list=features, fft_size=fft_size, hop_length=hop_length)
+            ext_features.append(ext)
             i += samples_per_chunk
-    X = parse_features(features)
+    X = parse_features(ext_features)
     print("Computing clusters...")
     (labels, linkage_matrix) = get_clusters(X)
     output_folder_name = os.path.basename(source_folder)
     print("Saving data to disk...")
-    save_outputs(output_folder_name, features, labels, linkage_matrix)
+    save_outputs(output_folder_name, ext_features, labels, linkage_matrix)
     print("Done.")
 
 if __name__ == "__main__":
@@ -84,4 +94,4 @@ if __name__ == "__main__":
     parser.add_argument("--hop_length", type=int, default=HOP_LENGTH, help="FFT hop length.")
     args = parser.parse_args()
 
-    run(args.source_folder, args.output_dest, args.chunk_length, args.fft_size, args.hop_length)
+    run(args.source_folder, args.output_dest, args.chunk_length, args.features, args.fft_size, args.hop_length)
