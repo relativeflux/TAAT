@@ -66,7 +66,8 @@ def run(source_folder,
         hop_length=HOP_LENGTH,
         *args, **kwargs):
     ext_features = [] #{}
-    for filename in sort_source_files(source_folder):
+    #for filename in sort_source_files(source_folder):
+    for filename in glob.glob(source_folder + '/*'):
         (_, sr, audio) = load(filename)
         samples_per_chunk = sr * chunk_length
         i = 0
