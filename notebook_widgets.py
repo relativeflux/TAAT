@@ -77,4 +77,4 @@ output_display = widgets.Box([output])
 
 main_widget = widgets.HBox([controls, output_display])
 
-#display(main_widget)
+display(main_widget)
