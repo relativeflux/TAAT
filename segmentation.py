@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from audio import load
 from features import extract_features
 
-from ssm import compute_sm_from_filename
+from ssm import compute_sm_from_filename, compute_novelty_ssm, plot_signal
 
 
 # https://www.audiolabs-erlangen.de/resources/MIR/FMP/C4/C4S4_NoveltySegmentation.html
@@ -72,7 +72,18 @@ def get_segmentation(filename, chunk_length, fft_size, hop_length):
     plt.show()
 
 def get_ssm(filename, **kwargs):
-    x, x_duration, X, Fs_feature, S, I = compute_sm_from_filename(filename, **kwargs)
+    x, x_duration, X, Fs_X, S, I = compute_sm_from_filename(filename, **kwargs)
     plt.set_cmap("gray")
     plt.imshow(S, interpolation="none")
+    plt.show()
+
+########################################
+
+def get_novelty_segmentation(filename, kernel=None, L=10, var=0.5, exclude=False):
+    x, x_duration, X, Fs_X, S, I = compute_sm_from_filename(filename, **kwargs)
+    seg = compute_novelty_ssm(S, kernel=kernel, L=L, var=var, exclude=exclude)
+    return S, seg, Fs_X
+
+def plot_novelty_segmentation(S, seg, Fs_X):
+    fig, ax, line = plot_signal(seg, Fs=Fs_X, color='k')
     plt.show()
