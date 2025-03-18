@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import librosa
 from scipy.spatial import distance
 from matplotlib import pyplot as plt
@@ -79,11 +80,37 @@ def get_ssm(filename, **kwargs):
 
 ########################################
 
-def get_novelty_segmentation(filename, kernel=None, L=10, var=0.5, exclude=False):
+def get_novelty_segmentation(filename, kernel=None, L_kernel=10, var=0.5, exclude=False, **kwargs):
     x, x_duration, X, Fs_X, S, I = compute_sm_from_filename(filename, **kwargs)
-    seg = compute_novelty_ssm(S, kernel=kernel, L=L, var=var, exclude=exclude)
+    seg = compute_novelty_ssm(S, kernel=kernel, L=L_kernel, var=var, exclude=exclude)
     return S, seg, Fs_X
 
+'''
 def plot_novelty_segmentation(S, seg, Fs_X):
     fig, ax, line = plot_signal(seg, Fs=Fs_X, color='k')
     plt.show()
+
+def plot_novelty_segmentation2(S, seg, Fs_X):
+    plt.set_cmap("gray")
+    plt.imshow(S, interpolation="none")
+    fig, ax, line = plot_signal(seg, Fs=Fs_X, color='k')
+    plt.show()
+'''
+
+def plot_novelty_segmentation(save_to, S, seg, Fs_X):
+    if not os.path.exists(save_to):
+        os.makedirs(outdir)
+    plt.set_cmap("gray")
+    plt.imshow(S, interpolation="none")
+    plt.savefig(os.path.join(save_to, "ssm.png"))
+    fig, ax, line = plot_signal(seg, Fs=Fs_X, color='k')
+    plt.savefig(os.path.join(save_to, "nov-seg.png"))
+    
+
+'''
+file_path'../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 1/data/001 End of the World (op.1).wav'
+S, seg, Fs_X = get_novelty_segmentation(file_path, L_kernel=20, L=81, H=10, L_smooth=1, thresh=1)
+plot_novelty_segmentation(S, seg, Fs_X)
+'''
+
+# file_path = 'scripts/FMP_C4_Audio_Brahms_HungarianDances-05_Ormandy.wav'
