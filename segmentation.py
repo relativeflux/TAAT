@@ -89,12 +89,6 @@ def get_novelty_segmentation(filename, kernel=None, L_kernel=10, var=0.5, exclud
 def plot_novelty_segmentation(S, seg, Fs_X):
     fig, ax, line = plot_signal(seg, Fs=Fs_X, color='k')
     plt.show()
-
-def plot_novelty_segmentation2(S, seg, Fs_X):
-    plt.set_cmap("gray")
-    plt.imshow(S, interpolation="none")
-    fig, ax, line = plot_signal(seg, Fs=Fs_X, color='k')
-    plt.show()
 '''
 
 def plot_novelty_segmentation(save_to, S, seg, Fs_X):
@@ -106,6 +100,11 @@ def plot_novelty_segmentation(save_to, S, seg, Fs_X):
     fig, ax, line = plot_signal(seg, Fs=Fs_X, color='k')
     plt.savefig(os.path.join(save_to, "nov-seg.png"))
     
+def plot_novelty_segmentation2(S, seg, Fs_X):
+    plt.set_cmap("gray")
+    plt.imshow(S, interpolation="none")
+    fig, ax, line = plot_signal(seg, Fs=Fs_X, color='k')
+    plt.show()
 
 '''
 file_path'../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 1/data/001 End of the World (op.1).wav'
@@ -114,3 +113,30 @@ plot_novelty_segmentation(S, seg, Fs_X)
 '''
 
 # file_path = 'scripts/FMP_C4_Audio_Brahms_HungarianDances-05_Ormandy.wav'
+
+##################################################
+
+import libfmp.c3
+
+
+def compute_sm_dot(X, Y):
+    return np.dot(np.transpose(X), Y)
+
+def get_mfcc_ssm(x, sr=22050, N=2048, H=1024, coef=[0,20]):
+    X_MFCC = librosa.feature.mfcc(y=x, sr=sr, hop_length=H, n_fft=N)
+    coef = np.arange(coef[0],coef[1])
+    X_MFCC_upper = X_MFCC[coef,:]
+    X, Fs_X = libfmp.c3.smooth_downsample_feature_sequence(X_MFCC_upper, sr/H, filt_len=41, down_sampling=10)
+    X = libfmp.c3.normalize_feature_sequence(X, norm='2', threshold=0.001)
+    return compute_sm_dot(X,X), Fs_X
+
+'''
+import librosa
+from ssm import compute_novelty_ssm
+from segmentation import get_mfcc_ssm, plot_novelty_segmentation2
+file_path = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 1/data/001 End of the World (op.1).wav'
+x, sr = librosa.load(file_path, sr=22050, mono=True)
+MFCC_S, Fs_X = get_mfcc_ssm(x)
+seg = compute_novelty_ssm(MFCC_S, kernel=None, L=20, var=0.5, exclude=False)
+plot_novelty_segmentation2(MFCC_S, seg, Fs_X)
+'''

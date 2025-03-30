@@ -1,0 +1,215 @@
+import math
+import librosa
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy.signal as signal
+
+
+def get_spectrogram(buffer, fft_size=2048, hop_length=2048):
+    # Amplitude spectrum (STFT)
+    stft = librosa.stft(buffer, n_fft=fft_size, hop_length=hop_length)
+    stft = np.abs(stft)
+    # DB spectrum
+    return librosa.amplitude_to_db(stft, ref=np.max)
+
+def get_cross_similarity_matrix(y_ref, y_comp, sr=22050, fft_size=2048, hop_length=2048, k=2, metric='euclidean'):
+    ref = librosa.feature.chroma_cqt(y=y_ref, sr=sr, hop_length=hop_length)
+    comp = librosa.feature.chroma_cqt(y=y_comp, sr=sr, hop_length=hop_length)
+    x_ref = librosa.feature.stack_memory(ref, n_steps=10, delay=3)
+    x_comp = librosa.feature.stack_memory(comp, n_steps=10, delay=3)
+    return librosa.segment.cross_similarity(x_comp, x_ref, k=k, metric=metric)
+
+def get_cross_similarity_matrix2(y_ref, y_comp, sr=22050, fft_size=2048, hop_length=2048, k=2, metric='euclidean'):
+    ref = get_spectrogram(y_ref, fft_size=fft_size, hop_length=hop_length)
+    comp = get_spectrogram(y_comp, fft_size=fft_size, hop_length=hop_length)
+    x_ref = librosa.feature.stack_memory(ref, n_steps=10, delay=3)
+    x_comp = librosa.feature.stack_memory(comp, n_steps=10, delay=3)
+    return librosa.segment.cross_similarity(x_comp, x_ref, k=k, metric=metric)
+
+'''
+def plot_cross_similarity_matrix(xsim, hop_length=2048):
+    fig, ax = plt.subplots(ncols=2, sharex=True, sharey=True)
+    imgsim = librosa.display.specshow(xsim, x_axis='s', y_axis='s',
+                             hop_length=hop_length, ax=ax[0])
+    ax[0].set(title='Binary cross-similarity (symmetric)')
+    fig.colorbar(imgsim, ax=ax[0], orientation='horizontal', ticks=[0, 1])
+    plt.show()
+'''
+
+def plot_cross_similarity_matrix(xsim, hop_length=2048):
+    fig, ax = plt.subplots(ncols=1, sharex=True, sharey=True)
+    imgsim = librosa.display.specshow(xsim, x_axis='s', y_axis='s',
+                             hop_length=hop_length, ax=ax)
+    ax.set(title='Binary cross-similarity (symmetric)')
+    fig.colorbar(imgsim, ax=ax, orientation='horizontal', ticks=[0, 1])
+    plt.show()
+
+
+'''
+import librosa
+from cross_similarity import get_cross_similarity_matrix, plot_cross_similarity_matrix
+
+file_path1 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 1/data/001 End of the World (op.1).wav'
+file_path2 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 1/data/004 The Spider (op.9).wav'
+file_path3 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 1/input/005 Disintegration (op.10).wav'
+
+y_ref, sr = librosa.load(file_path1, sr=22050, mono=True)
+y_comp, sr = librosa.load(file_path1, sr=22050, mono=True, offset=30)
+
+xsim = get_cross_similarity_matrix(y_comp, y_ref, k=2)
+
+plot_cross_similarity_matrix(xsim, hop_length=2048)
+
+#############################################################
+
+# Test 1: file_path1, file_path3; Used librosa.feature.chroma_cqt; k=5
+# Test 2: file_path1, file_path1 (offset=30); Used librosa.feature.chroma_cqt; k=15
+# Test 3: file_path1, file_path3; Used get_spectrogram; k=15
+# Test 4: file_path1, file_path2; Used get_spectrogram;k=15
+# Test 5: file_path1, file_path3; Used get_spectrogram; k=25
+'''
+
+FEATURES = [
+    'chroma_cqt',
+    'mel_spectrogram',
+    'mfcc',
+    'spectral_centroid',
+    'spectral_bandwidth',
+    'spectral_contrast',
+    'spectral_flatness',
+]
+
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
+    nyquist = 0.5 * fs
+    low = lowcut / nyquist
+    high = highcut / nyquist
+    b, a = signal.butter(order, [low, high], btype='band')
+    return signal.lfilter(b, a, data)
+
+def chroma_cqt(y, sr=22050, fft_size=2048, hop_length=2048):
+    return librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=hop_length)
+
+def melspectrogram(y, sr=22050, fft_size=2048, hop_length=2048):
+    return librosa.feature.melspectrogram(y=y, sr=sr, n_fft=fft_size, hop_length=hop_length)
+
+def mfcc(y, sr=22050, fft_size=2048, hop_length=2048):
+    return librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13, hop_length=hop_length)
+
+def spectral_centroid(y, sr=22050, fft_size=2048, hop_length=2048):
+    return librosa.feature.spectral_centroid(y=y, sr=sr, n_fft=fft_size, hop_length=hop_length)
+
+def spectral_bandwidth(y, sr=22050, fft_size=2048, hop_length=2048):
+    return librosa.feature.spectral_bandwidth(y=y, sr=sr, n_fft=fft_size, hop_length=hop_length)
+
+def spectral_contrast(y, sr=22050, fft_size=2048, hop_length=2048):
+    return librosa.feature.spectral_contrast(y=y, sr=sr, n_fft=fft_size, hop_length=hop_length)
+
+def spectral_flatness(y, sr=22050, fft_size=2048, hop_length=2048):
+    return librosa.feature.spectral_flatness(y=y, n_fft=fft_size, hop_length=hop_length)
+
+args = locals()
+
+def get_xsim(y_comp, y_ref, sr=22050, feature="chroma_cqt", fft_size=2048, hop_length=2048, k=2, metric='euclidean', mode='affinity', gap_onset=np.inf, gap_extend=np.inf, knight_moves=False):
+    ref = args[feature](y_ref, sr=sr, fft_size=fft_size, hop_length=hop_length)
+    comp = args[feature](y_comp, sr=sr, fft_size=fft_size, hop_length=hop_length)
+    x_ref = librosa.feature.stack_memory(ref, n_steps=10, delay=3)
+    x_comp = librosa.feature.stack_memory(comp, n_steps=10, delay=3)
+    xsim = librosa.segment.cross_similarity(x_comp, x_ref, k=k, metric=metric, mode=mode)
+    rqa = librosa.sequence.rqa(xsim, gap_onset=gap_onset, gap_extend=gap_extend, knight_moves=knight_moves)
+    return xsim, rqa
+
+def get_xsim_start_times(rqa, y_ref, y_comp, sr):
+    score, plot = rqa
+    score1_len, score2_len = score.shape
+    plot_start1, plot_start2 = plot[0]
+    start1_pcnt = plot_start1 / score1_len
+    start2_pcnt = plot_start2 / score2_len
+    start1_sample = math.floor(len(y_ref) * start1_pcnt)
+    start2_sample = math.floor(len(y_comp) * start2_pcnt)
+    return (librosa.samples_to_time(start1_sample),
+            librosa.samples_to_time(start2_sample))
+
+def get_xsim_start_end_times(rqa, y_ref, y_comp, sr):
+    score, plot = rqa
+    score1_len, score2_len = score.shape
+    # Compute start times...
+    plot_start1, plot_start2 = plot[0]
+    start1_pcnt = plot_start1 / score1_len
+    start2_pcnt = plot_start2 / score2_len
+    start1_sample = math.floor(len(y_ref) * start1_pcnt)
+    start2_sample = math.floor(len(y_comp) * start2_pcnt)
+    # Compute end times...
+    plot_end1, plot_end2 = plot[-1]
+    end1_pcnt = plot_end1 / score1_len
+    end2_pcnt = plot_end2 / score2_len
+    end1_sample = math.floor(len(y_ref) * end1_pcnt)
+    end2_sample = math.floor(len(y_comp) * end2_pcnt)
+    # Convert samples to times in seconds and return...
+    return (np.round(librosa.samples_to_time(start1_sample), 2),
+            np.round(librosa.samples_to_time(end1_sample), 2),
+            np.round(librosa.samples_to_time(start2_sample), 2),
+            np.round(librosa.samples_to_time(end2_sample), 2))
+
+'''
+def plot_xsim(xsim, rqa, hop_length):
+    fig, ax = plt.subplots(ncols=2, sharex=True, sharey=True)
+    imgsim = librosa.display.specshow(xsim, x_axis='s', y_axis='s', hop_length=hop_length, ax=ax[0])
+    ax[0].set(title='Cross-similarity matrix')
+    imgrqa = librosa.display.specshow(rqa, x_axis='s', y_axis='s', cmap='magma_r', hop_length=hop_length, ax=ax[1])
+    ax[1].set(title='RQA')
+    ax[1].label_outer()
+    fig.colorbar(imgsim, ax=ax[0], orientation='horizontal', ticks=[0, 1])
+    fig.colorbar(imgrqa, ax=ax[1], orientation='horizontal')
+    plt.show()
+'''
+
+def plot_xsim(xsim, rqa, start1, end1, start2, end2):
+    score, path = rqa
+    fig, ax = plt.subplots(ncols=2, sharex=True, sharey=True)
+    librosa.display.specshow(xsim, x_axis='frames', y_axis='frames', ax=ax[0])
+    ax[0].set(title='Cross-similarity matrix')
+    librosa.display.specshow(score, x_axis='frames', y_axis='frames', ax=ax[1])
+    ax[1].set(title='Alignment score matrix')
+    ax[1].plot(path[:, 1], path[:, 0], label='Optimal path', color='c')
+    ax[1].legend()
+    ax[1].label_outer()
+    start_end_data = f'Start 1: {start1}, End 1: {end1} | Start 2: {start2}, End 2: {end2}'
+    plt.figtext(0, 0, start_end_data, va='top')
+    plt.show(block=False)
+
+'''
+import librosa
+from cross_similarity import get_xsim, plot_xsim
+file_path1 = '../Dropbox/Miscellaneous/TAAT/Data/sg-audio-datasets/02 c-in your image.wav'
+file_path2 = '../Dropbox/Miscellaneous/TAAT/Data/sg-audio-datasets/02 i-no fish.wav'
+y_ref, sr = librosa.load(file_path1, sr=22050, mono=True)
+y_comp, sr = librosa.load(file_path2, sr=22050, mono=True)
+
+a, b = get_xsim(y_comp, y_ref, feature='melspectrogram', fft_size=8256, mode='affinity', k=5, metric='cosine')
+
+a, b = get_xsim(y_comp, y_ref, feature='melspectrogram', fft_size=8192, hop_length=8192, mode='affinity', k=20, metric='cosine', gap_onset=5, gap_extend=10, knight_moves=True)
+
+file_path3 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 4/data/003 Chord composition V (op.8).wav'
+file_path4 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 4/input/023 Daguerreo types, Op. 32B.wav'
+'''
+
+###################################################################
+
+'''
+from essentia.standard import *
+
+def get_mfcc(audio):
+    w = Windowing(type='hann')
+    # FFT() returns the complex FFT, but we just want the magnitude spectrum
+    spectrum = Spectrum() 
+    spec = spectrum(w(audio))
+    return MFCC()(spec) # mfcc_bands, mfcc_coeffs
+
+
+def get_xsim_ess(y_comp_path, y_ref_path, sr=22050):
+    y_ref = MonoLoader(filename=y_ref_path, sampleRate=sr)()
+    y_comp = MonoLoader(filename=y_comp_path, sampleRate=sr)()
+    ref = get_mfcc(y_ref)
+    comp = get_mfcc(y_comp)
+'''
+
