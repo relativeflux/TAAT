@@ -1,5 +1,5 @@
 import ipywidgets as widgets
-from IPython.display import display, Audio
+from IPython.display import display, Audio, HTML
 
 from features import FEATURES
 from main import run
@@ -75,14 +75,16 @@ k_selector = widgets.IntText(
     disabled=False
 )
 
-gap_onset_selector = widgets.IntText(
+gap_onset_selector = widgets.BoundedIntText(
     value=5,
+    min=0,
     description='Gap Onset:',
     disabled=False
 )
 
-gap_extend_selector = widgets.IntText(
+gap_extend_selector = widgets.BoundedIntText(
     value=10,
+    min=0,
     description='Gap Extend:',
     disabled=False
 )
@@ -108,15 +110,28 @@ def handle_on_click():
         hop_length = hop_length_selector.value
         metric = metric_selector.value
         k = k_selector.value
+        gap_onset = np.inf if gap_onset_selector.value==0 else gap_onset_selector.value
+        gap_extend = np.inf if gap_extend_selector.value==0 else gap_extend_selector.value
+        knight_moves = knight_moves_selector.value
         y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
         y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
-        a, b = get_xsim(y_comp, y_ref, feature=feature, sr=sr, fft_size=fft_size, hop_length=hop_length, k=k, metric=metric, gap_onset=5, gap_extend=10, knight_moves=True)
+        a, b = get_xsim(y_comp, y_ref, feature=feature, sr=sr, fft_size=fft_size, hop_length=hop_length, k=k, metric=metric, gap_onset=gap_onset, gap_extend=gap_extend, knight_moves=knight_moves)
         start1, end1, start2, end2 = get_xsim_start_end_times(b, y_ref, y_comp, sr)
         plot_xsim(a, b, start1, end1, start2, end2)
         y_ref_seg, _ = librosa.load(y_ref_path, sr=sr, mono=True, offset=start1, duration=end1-start1)
         display(Audio(data=y_ref_seg, rate=sr))
         y_comp_seg, _ = librosa.load(y_comp_path, sr=sr, mono=True, offset=start2, duration=end2-start2)
+        display(HTML("<style>audio { width: 100%; margin-left: auto; margin-right: auto; }</style>"))
         display(Audio(data=y_comp_seg, rate=sr))
+
+'''
+File 1 - vertical
+File 2 - horizontal
+default
+metric: euclidean, manhattan
+fft-size: 8192, hop-size: 4096 (also try with euclidean metric)
+k: 50
+'''
 
 run_btn.on_click(lambda btn: handle_on_click())
 
@@ -129,6 +144,9 @@ items = [
     hop_length_selector,
     metric_selector,
     k_selector,
+    gap_onset_selector,
+    gap_extend_selector,
+    knight_moves_selector,
     run_btn,
 ]
 
