@@ -195,21 +195,160 @@ file_path4 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 4/input/023 Dag
 
 ###################################################################
 
+import copy
+from matplotlib import collections
+import soundfile as sf
+import os
+import json
+
+def get_xsim_multi(y_comp, y_ref, sr=22050, feature="chroma_cqt", fft_size=2048, hop_length=2048, k=2, metric='euclidean', mode='affinity', gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5):
+    ref = args[feature](y_ref, sr=sr, fft_size=fft_size, hop_length=hop_length)
+    comp = args[feature](y_comp, sr=sr, fft_size=fft_size, hop_length=hop_length)
+    x_ref = librosa.feature.stack_memory(ref, n_steps=10, delay=3)
+    x_comp = librosa.feature.stack_memory(comp, n_steps=10, delay=3)
+    xsim_orig = librosa.segment.cross_similarity(x_comp, x_ref, k=k, metric=metric, mode=mode)
+    rqa_orig = librosa.sequence.rqa(xsim_orig, gap_onset=gap_onset, gap_extend=gap_extend, knight_moves=knight_moves)
+    xsim_copy = copy.deepcopy(xsim_orig)
+    paths = []
+    paths.append(rqa_orig[1])
+    k = 0
+    while k < num_paths-1:
+        for (i, j) in paths[k]:
+            xsim_copy[i, j] = 0.0
+        rqa = librosa.sequence.rqa(xsim_copy, gap_onset=gap_onset, gap_extend=gap_extend, knight_moves=knight_moves)
+        paths.append(rqa[1])
+        k += 1
+    return xsim_orig, rqa_orig[0], paths
+
 '''
-from essentia.standard import *
-
-def get_mfcc(audio):
-    w = Windowing(type='hann')
-    # FFT() returns the complex FFT, but we just want the magnitude spectrum
-    spectrum = Spectrum() 
-    spec = spectrum(w(audio))
-    return MFCC()(spec) # mfcc_bands, mfcc_coeffs
-
-
-def get_xsim_ess(y_comp_path, y_ref_path, sr=22050):
-    y_ref = MonoLoader(filename=y_ref_path, sampleRate=sr)()
-    y_comp = MonoLoader(filename=y_comp_path, sampleRate=sr)()
-    ref = get_mfcc(y_ref)
-    comp = get_mfcc(y_comp)
+def plot_xsim_multi(xsim, rqa, paths):
+    fig, ax = plt.subplots(ncols=2, sharex=True, sharey=True)
+    librosa.display.specshow(xsim, x_axis='frames', y_axis='frames', ax=ax[0])
+    ax[0].set(title='Cross-similarity matrix')
+    librosa.display.specshow(rqa, x_axis='frames', y_axis='frames', ax=ax[1])
+    ax[1].set(title='Alignment score matrix')
+    col = collections.LineCollection(paths, colors='c')
+    ax[1].add_collection(col)
+    plt.show(block=False)
 '''
+
+def onpick(event):
+    thisline = event.artist
+    xdata = thisline.get_xdata()
+    ydata = thisline.get_ydata()
+    ind = event.ind
+    points = tuple(zip(xdata[ind], ydata[ind]))
+    print('onpick points:', points)
+
+def plot_xsim_multi(xsim, rqa, paths):
+    fig, ax = plt.subplots(ncols=2, sharex=True, sharey=True)
+    librosa.display.specshow(xsim, x_axis='frames', y_axis='frames', ax=ax[0])
+    ax[0].set(title='Cross-similarity matrix')
+    librosa.display.specshow(rqa, x_axis='frames', y_axis='frames', ax=ax[1])
+    ax[1].set(title='Alignment score matrix')
+    for path in paths:
+        ax[1].plot(path[:, 1], path[:, 0], color='c', picker=True)
+    fig.canvas.mpl_connect('pick_event', onpick)
+    plt.show(block=False)
+
+def get_xsim_start_end_times2(score, plot, y_ref, y_comp, sr):
+    score1_len, score2_len = score.shape
+    # Compute start times...
+    plot_start1, plot_start2 = plot[0]
+    start1_pcnt = plot_start1 / score1_len
+    start2_pcnt = plot_start2 / score2_len
+    start1_sample = math.floor(len(y_ref) * start1_pcnt)
+    start2_sample = math.floor(len(y_comp) * start2_pcnt)
+    # Compute end times...
+    plot_end1, plot_end2 = plot[-1]
+    end1_pcnt = plot_end1 / score1_len
+    end2_pcnt = plot_end2 / score2_len
+    end1_sample = math.floor(len(y_ref) * end1_pcnt)
+    end2_sample = math.floor(len(y_comp) * end2_pcnt)
+    # Convert samples to times in seconds and return...
+    return (np.round(librosa.samples_to_time(start1_sample), 2),
+            np.round(librosa.samples_to_time(end1_sample), 2),
+            np.round(librosa.samples_to_time(start2_sample), 2),
+            np.round(librosa.samples_to_time(end2_sample), 2))
+
+def write_path_files(outdir, score, paths, y_ref_path, y_comp_path, sr):
+    y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
+    y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
+    p = [get_xsim_start_end_times2(score, path, y_ref, y_comp, sr) for path in paths]
+    i = 0
+    for start_end_pair in p:
+        start1, end1, start2, end2 = start_end_pair
+        y_ref_seg, _ = librosa.load(y_ref_path, sr=sr, mono=True, offset=start1, duration=end1-start1)
+        y_comp_seg, _ = librosa.load(y_comp_path, sr=sr, mono=True, offset=start2, duration=end2-start2)
+        i += 1
+        sf.write(os.path.join(outdir, f"y_ref_{i}.wav"), y_ref_seg, sr)
+        sf.write(os.path.join(outdir, f"y_comp_{i}.wav"), y_comp_seg, sr)
+
+def match_xsim_multi(paths, timings_file, diff=5):
+    with open(timings_file) as f:
+        content = json.load(f)
+    timings = content['data']
+    result = {}
+    for i in range(0, len(timings)):
+        result[i] = None
+    for (i, [[a,b],[c,d]]) in enumerate(timings):
+        for [aa,bb,cc,dd] in paths:
+            diff_a = abs(a-aa)
+            diff_b = abs(b-bb)
+            diff_c = abs(c-cc)
+            diff_d = abs(d-dd)
+            if (diff_a<=diff and diff_b<=diff
+                and diff_c<=diff and diff_d<=diff):
+                result[i] = [aa,bb,cc,dd]
+    return result
+
+def match_xsim_multi2(paths, timings_file, diff=5):
+    with open(timings_file) as f:
+        content = json.load(f)
+    timings = content['data']
+    result = {}
+    for i in range(0, len(timings)):
+        result[i] = None
+    for (i, [[a,b],[c,d]]) in enumerate(timings):
+        for [aa,bb,cc,dd] in paths:
+            if result[i]:
+                [aaa,bbb,ccc,ddd] = result[i]
+                diff_a = aaa-aa
+                diff_b = bbb-bb
+                diff_c = ccc-cc
+                diff_d = ddd-dd
+                if (diff_a<diff and diff_b<diff
+                    and diff_c<diff and diff_d<diff):
+                    result[i] = [aa,bb,cc,dd]
+            else:
+                diff_a = abs(a-aa)
+                diff_b = abs(b-bb)
+                diff_c = abs(c-cc)
+                diff_d = abs(d-dd)
+                if (diff_a<=diff and diff_b<=diff
+                    and diff_c<=diff and diff_d<=diff):
+                    result[i] = [aa,bb,cc,dd]
+    return result
+
+
+def match_xsim_multi3(paths, timings_file, diff=5):
+    with open(timings_file) as f:
+        content = json.load(f)
+    timings = content['data']
+    result = {}
+    for i in range(0, len(timings)):
+        result[i] = None
+    for (i, [[a,b],[c,d]]) in enumerate(timings):
+        candidate = None
+        for [aa,bb,cc,dd] in paths:
+            if not candidate:
+                candidate = [aa, bb, cc, dd]
+            else:
+                if abs(a-aa)<abs(a-candidate[0]) and abs(b-bb)<abs(b-candidate[1]) \
+                   and abs(c-cc)<abs(c-candidate[2]) and abs(d-dd)<abs(d-candidate[3]):
+                   candidate = [aa,bb,cc,dd]
+        result[i] = candidate
+    return result
+
+
 
