@@ -266,11 +266,12 @@ def get_xsim_start_end_times2(score, plot, y_ref, y_comp, sr):
     end1_sample = math.floor(len(y_ref) * end1_pcnt)
     end2_sample = math.floor(len(y_comp) * end2_pcnt)
     # Convert samples to times in seconds and return...
-    return (np.round(librosa.samples_to_time(start1_sample), 2),
+    return [np.round(librosa.samples_to_time(start1_sample), 2),
             np.round(librosa.samples_to_time(end1_sample), 2),
             np.round(librosa.samples_to_time(start2_sample), 2),
-            np.round(librosa.samples_to_time(end2_sample), 2))
+            np.round(librosa.samples_to_time(end2_sample), 2)]
 
+'''
 def write_path_files(outdir, score, paths, y_ref_path, y_comp_path, sr):
     y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
     y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
@@ -280,11 +281,49 @@ def write_path_files(outdir, score, paths, y_ref_path, y_comp_path, sr):
         start1, end1, start2, end2 = start_end_pair
         y_ref_seg, _ = librosa.load(y_ref_path, sr=sr, mono=True, offset=start1, duration=end1-start1)
         y_comp_seg, _ = librosa.load(y_comp_path, sr=sr, mono=True, offset=start2, duration=end2-start2)
+        filename1 = f"y_ref.start={start1}_dur={end1-start1}.wav"
+        filename2 = f"y_comp.start={start2}_dur={end2-start2}.wav"
         i += 1
-        sf.write(os.path.join(outdir, f"y_ref_{i}.wav"), y_ref_seg, sr)
-        sf.write(os.path.join(outdir, f"y_comp_{i}.wav"), y_comp_seg, sr)
+        sf.write(os.path.join(outdir, filename1), y_ref_seg, sr)
+        sf.write(os.path.join(outdir, filename2), y_comp_seg, sr)
+
+def write_path_file(outdir, file_path, filename_prefix, start, end, sr):
+    seg, _ = librosa.load(file_path, sr=sr, mono=True, offset=start, duration=end-start)
+    filename = f"{filename_prefix}.start={start}_end={end}"
+    filename = os.path.join(outdir, f"{filename}")
+    i = 1
+    while os.path.exists(f"{filename}.wav"):
+        filename = f"{filename}_({i})"
+        i += 1
+    sf.write(f"{filename}.wav", seg, sr)
+
+def write_path_file2(outdir, file_path, filename_prefix, start, end, sr):
+    seg, _ = librosa.load(file_path, sr=sr, mono=True, offset=start, duration=end-start)
+    filename = f"{filename_prefix}.start={start}_end={end}"
+    path = outdir + "/%s%s" % (filename, ".wav")
+    i = 1
+    while os.path.exists(path):
+        path = outdir + "%s_%d%s" % (filename, i, ".wav")
+        i += 1
+    sf.write(path, seg, sr)
+'''
+
+def write_path_file(outdir, file_path, filename_prefix, start, end, sr):
+    seg, _ = librosa.load(file_path, sr=sr, mono=True, offset=start, duration=end-start)
+    filename = f"{filename_prefix}.start={start}_end={end}.wav"
+    sf.write(os.path.join(outdir, filename), seg, sr)
+
+def write_path_files(outdir, score, paths, y_ref_path, y_comp_path, sr):
+    y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
+    y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
+    p = [get_xsim_start_end_times2(score, path, y_ref, y_comp, sr) for path in paths]
+    for (i, start_end_pair) in enumerate(p):
+        start1, end1, start2, end2 = start_end_pair
+        write_path_file(outdir, y_ref_path, f"y_ref_{i}", start1, end1, sr)
+        write_path_file(outdir, y_comp_path, f"y_comp_{i}", start2, end2, sr)
 
 def match_xsim_multi(paths, timings_file, diff=5):
+    paths = sorted(paths)
     with open(timings_file) as f:
         content = json.load(f)
     timings = content['data']
@@ -331,7 +370,7 @@ def match_xsim_multi2(paths, timings_file, diff=5):
     return result
 
 
-def match_xsim_multi3(paths, timings_file, diff=5):
+def match_xsim_multi3(paths, timings_file):
     with open(timings_file) as f:
         content = json.load(f)
     timings = content['data']
@@ -350,5 +389,35 @@ def match_xsim_multi3(paths, timings_file, diff=5):
         result[i] = candidate
     return result
 
+def match_xsim_multi4(paths, timings_file, diff=5):
+    paths = sorted(paths)
+    with open(timings_file) as f:
+        content = json.load(f)
+    timings = content['data']
+    result = []
+    for [[a,b],[c,d]] in timings:
+        candidate = paths[0]
+        for [aa,bb,cc,dd] in paths[1:]:
+            if (abs(a-candidate[0]) <= diff) and (abs(b-candidate[1]) <= diff) and (abs(c-candidate[2]) <= diff) and (abs(d-candidate[3]) <= diff):
+                candidate = [aa,bb,cc,dd]
+            #else:
+                #candidate = None
+        result.append(candidate)
+    return result
+
+def match_xsim_multi5(paths, timings_file, diff=5):
+    with open(timings_file) as f:
+        content = json.load(f)
+    timings = content['data']
+    result = {}
+    for i in range(0, len(timings)):
+        result[i] = None
+    for (i, [[a,b],[c,d]]) in enumerate(timings):
+        for [aa,bb,cc,dd] in paths:
+            diff_a = abs(a-aa)
+            diff_b = abs(b-bb)
+            if (diff_a<=diff and diff_b<=diff):
+                result[i] = [aa,bb,cc,dd]
+    return result
 
 
