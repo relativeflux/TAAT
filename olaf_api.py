@@ -22,8 +22,9 @@ def dedupe_matches(matches, margin=2):
     matches = sorted(matches)
     result = [matches[0]]
     for match in matches:
-        if abs(match[0][0] - result[-1][0][0]) > margin:
-            result.append(match)
+        if match[0][1] > result[-1][0][1]:
+            if abs(match[0][0] - result[-1][0][0]) > margin:
+                result.append(match)
     return result
 
 '''
