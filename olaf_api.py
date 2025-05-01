@@ -17,11 +17,14 @@ def store(path):
 def query(path):
     return Olaf(OlafCommand.QUERY,path).do()
 
-def dedupe_matches(matches, margin=2):
+def get_ref_and_query_values(matches):
     matches = [[[match['queryStart'], match['queryStop']], \
         [match['referenceStart'], match['referenceStop']]] \
             for match in matches]
-    matches = sorted(matches)
+    return sorted(matches)
+
+def dedupe_matches(matches, margin=2):
+    matches = get_ref_and_query_values(matches)
     result = [matches[0]]
     for match in matches:
         if match[0][1] > result[-1][0][1]:
