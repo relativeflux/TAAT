@@ -1,4 +1,6 @@
 import os
+import librosa
+import soundfile as sf
 from olaf import Olaf, OlafCommand
 
 
@@ -26,6 +28,21 @@ def dedupe_matches(matches, margin=2):
             if abs(match[0][0] - result[-1][0][0]) > margin:
                 result.append(match)
     return result
+
+def write_path_file(outdir, file_path, filename_prefix, start, end, sr):
+    seg, _ = librosa.load(file_path, sr=sr, mono=True, offset=start, duration=end-start)
+    filename = f"{filename_prefix}.start={start}_end={end}.wav"
+    sf.write(os.path.join(outdir, filename), seg, sr)
+
+# matches should be the output from dedupe_matches.
+# y_ref_path and y_comp_path are the paths to the matched and queried files, respectively.
+def write_path_files(outdir, matches, y_ref_path, y_comp_path, sr):
+    y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
+    y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
+    for (i, start_end_pair) in enumerate(matches):
+        [[start1, end1], [start2, end2]] = start_end_pair
+        write_path_file(outdir, y_ref_path, f"y_ref_{i}", start1, end1, sr)
+        write_path_file(outdir, y_comp_path, f"y_comp_{i}", start2, end2, sr)
 
 '''
 results = [31.288002014160156, 54.35200119018555, 27.784000396728516, 54.10400390625, 32.88800048828125, 54.0160026550293, 105.26400756835938]
