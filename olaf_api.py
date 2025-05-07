@@ -26,10 +26,23 @@ def get_ref_and_query_values(matches):
 def dedupe_matches(matches, margin=2):
     matches = get_ref_and_query_values(matches)
     result = [matches[0]]
-    for match in matches:
+    for match in matches[1:]:
         if match[0][1] > result[-1][0][1]:
-            if abs(match[0][0] - result[-1][0][0]) > margin:
+            #if abs(match[0][0] - result[-1][0][1]) > margin:
+            if abs(result[-1][0][1] - match[0][0]) <= margin:
                 result.append(match)
+    return result
+
+def dedupe_matches2(matches, margin=2):
+    matches = get_ref_and_query_values(matches)
+    result = [matches[0]]
+    for match in matches[1:]:
+        if match[0][1] > result[-1][0][1] or \
+                match[1][1] > result[-1][1][1]:
+            if abs(result[-1][0][1] - match[0][0]) <= margin or \
+                    abs(result[-1][1][1] - match[1][0]) <= margin:
+                result[-1] = [ [result[-1][0][0], match[0][1]], \
+                    [result[-1][1][0], match[1][1]] ]
     return result
 
 def write_path_file(outdir, file_path, filename_prefix, start, end, sr):
