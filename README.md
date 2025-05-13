@@ -34,7 +34,7 @@ TBC
 
 #### Other dependencies
 
-The Olaf audio fingerprinting library needs to be compiled - find instructions [here](https://github.com/JorenSix/Olaf/blob/master/python-wrapper/README.textile). You will also need to build the [Olaf Python wrapper](https://github.com/JorenSix/Olaf/blob/master/python-wrapper/README.textile), which creates the Olaf shared C library.
+The Olaf audio fingerprinting library needs to be compiled - find instructions [here](https://github.com/JorenSix/Olaf?tab=readme-ov-file#compilation). You will also need to build the [Olaf Python wrapper](https://github.com/JorenSix/Olaf/blob/master/python-wrapper/README.textile), which creates the Olaf shared C library.
 
 Once you have built these you will need to copy certain resources from the Olaf top-level folder to the top-level folder of the TAAT repository:
 
