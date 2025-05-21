@@ -1,6 +1,7 @@
 import os
 import librosa
 import soundfile as sf
+import contextlib
 from olaf import Olaf, OlafCommand
 
 
@@ -12,7 +13,9 @@ def store(path):
             for filename in filenames:
                 if filename.endswith(".wav"):
                     filepath = os.path.join(dirpath, filename)
-                    Olaf(OlafCommand.STORE,filepath).do()
+                    with contextlib.redirect_stdout(None):
+                        Olaf(OlafCommand.STORE,filepath).do()
+                    print(f'Stored {filepath}.')
 
 def query(path):
     return Olaf(OlafCommand.QUERY,path).do()
