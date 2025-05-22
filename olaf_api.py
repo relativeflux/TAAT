@@ -17,8 +17,19 @@ def store(path):
                         Olaf(OlafCommand.STORE,filepath).do()
                     print(f'Stored {filepath}.')
 
+'''
 def query(path):
     return Olaf(OlafCommand.QUERY,path).do()
+'''
+
+def query(path, no_identity_match=True):
+    result = Olaf(OlafCommand.QUERY,path).do()
+    if no_identity_match:
+        def filter_fn(x):
+            x_path = str(x['path'], encoding='utf-8')
+            return os.path.basename(path)!=os.path.basename(x_path)
+        result = list(filter(filter_fn, result))
+    return result
 
 def get_ref_and_query_values(matches):
     matches = [[[match['queryStart'], match['queryStop']], \
