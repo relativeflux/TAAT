@@ -17,18 +17,32 @@ def store(path):
                         Olaf(OlafCommand.STORE,filepath).do()
                     print(f'Stored {filepath}.')
 
-'''
-def query(path):
-    return Olaf(OlafCommand.QUERY,path).do()
-'''
-
-def query(path, no_identity_match=True):
-    result = Olaf(OlafCommand.QUERY,path).do()
+def query(path, no_identity_match=True, prune_below=0.2):
+    with contextlib.redirect_stdout(None):
+        result = Olaf(OlafCommand.QUERY,path).do()
+    max_match_count = result[0]['matchCount']
+    def filter_fn(x):
+        match_count = x['matchCount']
+        if prune_below < 1: match_count = match_count / max_match_count
+        return match_count >= prune_below
+    result = list(filter(filter_fn, result))
     if no_identity_match:
         def filter_fn(x):
             x_path = str(x['path'], encoding='utf-8')
-            return os.path.basename(path)!=os.path.basename(x_path)
+            return os.path.basename(path) != os.path.basename(x_path)
         result = list(filter(filter_fn, result))
+    return result
+
+def group_matches_by_path(matches):
+    paths = []
+    result = []
+    for match in matches:
+        if match['path'] not in paths:
+            paths.append(match['path'])
+            result.append([match])
+        else:
+            path_idx = paths.index(match['path'])
+            result[path_idx].append(match)
     return result
 
 def get_ref_and_query_values(matches):
