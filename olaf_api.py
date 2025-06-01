@@ -17,6 +17,13 @@ def store(path):
                         Olaf(OlafCommand.STORE,filepath).do()
                     print(f'Stored {filepath}.')
 
+def stats():
+    config = lib.olaf_config_default()
+    db = lib.olaf_db_new(config.dbFolder,True)
+    lib.olaf_db_stats(db, False)
+    lib.olaf_db_destroy(db)
+    lib.olaf_config_destroy(config)
+
 def query(path, no_identity_match=True, prune_below=0.2):
     with contextlib.redirect_stdout(None):
         result = Olaf(OlafCommand.QUERY,path).do()
