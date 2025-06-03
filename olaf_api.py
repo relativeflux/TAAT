@@ -3,6 +3,7 @@ import librosa
 import soundfile as sf
 import contextlib
 from olaf import Olaf, OlafCommand
+from olaf_cffi import lib
 
 
 def store(path):
