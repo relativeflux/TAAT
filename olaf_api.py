@@ -6,6 +6,15 @@ from olaf import Olaf, OlafCommand
 from olaf_cffi import lib
 
 
+# Recommendation for more fingerprints per second using the configuration options:
+# https://github.com/JorenSix/Olaf/issues/19
+# Some interesting comments by the project author:
+# https://github.com/JorenSix/Olaf/issues/49#issuecomment-2056022327
+# Also some comments here:
+# https://github.com/JorenSix/Olaf/issues/24#issuecomment-1424106565
+# And here:
+# https://github.com/JorenSix/Olaf/issues/48#issuecomment-1991615127
+
 def store(path):
     if os.path.isfile(path):
         Olaf(OlafCommand.STORE,path).do()
@@ -25,7 +34,9 @@ def stats():
     lib.olaf_db_destroy(db)
     lib.olaf_config_destroy(config)
 
-def query(path, no_identity_match=True, prune_below=0.2):
+def query(path, no_identity_match=True,
+                prune_below=0.2,
+                group_by_path=True):
     with contextlib.redirect_stdout(None):
         result = Olaf(OlafCommand.QUERY,path).do()
     if result:
@@ -40,6 +51,8 @@ def query(path, no_identity_match=True, prune_below=0.2):
                 x_path = str(x['path'], encoding='utf-8')
                 return os.path.basename(path) != os.path.basename(x_path)
             result = list(filter(filter_fn, result))
+        if group_by_path:
+            result = group_matches_by_path(result)
     else:
         result = []
     return result
@@ -84,20 +97,27 @@ def dedupe_matches2(matches, margin=2):
                     [result[-1][1][0], match[1][1]] ]
     return result
 
-def write_path_file(outdir, file_path, filename_prefix, start, end, sr):
+def write_match_file(outdir, file_path, filename_prefix, start, end, sr):
     seg, _ = librosa.load(file_path, sr=sr, mono=True, offset=start, duration=end-start)
     filename = f"{filename_prefix}.start={start}_end={end}.wav"
     sf.write(os.path.join(outdir, filename), seg, sr)
 
-# matches should be the output from dedupe_matches.
-# y_ref_path and y_comp_path are the paths to the matched and queried files, respectively.
-def write_path_files(outdir, matches, y_ref_path, y_comp_path, sr):
-    y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
-    y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
-    for (i, start_end_pair) in enumerate(matches):
-        [[start1, end1], [start2, end2]] = start_end_pair
-        write_path_file(outdir, y_ref_path, f"y_ref_{i}", start1, end1, sr)
-        write_path_file(outdir, y_comp_path, f"y_comp_{i}", start2, end2, sr)
+def make_dir_for_file_path(parent_dir, file_path):
+    file_path_dir = os.path.splitext(os.path.basename(file_path))[0]
+    file_path_dir = ''.join(['_' if char == ' ' else char for char in file_path_dir])
+    file_path_dir = os.path.join(parent_dir, file_path_dir)
+    if not os.path.exists(file_path_dir):
+        os.makedirs(file_path_dir)
+    return file_path_dir
+
+def write_match_files(outdir, query_path, matches, sr):
+    matches_dir = make_dir_for_file_path(outdir, query_path)
+    for match_group in matches:
+        match_path = str(match_group[0]['path'], encoding="utf-8")
+        match_group_dir = make_dir_for_file_path(matches_dir, match_path)
+        for (i, match) in enumerate(match_group):
+            write_match_file(match_group_dir, query_path, f"query_{i}", match["queryStart"], match["queryStop"], sr)
+            write_match_file(match_group_dir, match['path'], f"ref_{i}", match["referenceStart"], match["referenceStop"], sr)
 
 '''
 results = [31.288002014160156, 54.35200119018555, 27.784000396728516, 54.10400390625, 32.88800048828125, 54.0160026550293, 105.26400756835938]
