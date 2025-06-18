@@ -53,9 +53,9 @@ Stores extracted fingerprints from an audio file in the database.
 
 Audio is decoded and resampled using ffmpeg, so ffmpeg needs to be available on your system in order for it to work.
 
-| Parameter Name  | Description |
-| ------------ | ------------- |
-| **path : string**             | Path to the file, or folder of files, whose fingerprints will be extracted and stored in the database.  |
+| Parameter Name  | Description    |
+| :-------------- | :------------- |
+| **_path : string_**             | Path to the file, or folder of files, whose fingerprints will be extracted and stored in the database.  |
 
 **stats()**
 
@@ -66,22 +66,22 @@ Get statistics on the database.
 Extracts fingerprints from the supplied audio files and attempts to matche them with what is stored in the database.
 
 | Parameter Name    | Description   |
-| ----------------- | ------------- |
-| **path : string** | Path to the file to be queried against the database.  |
-| **no_identity_match : bool**  | Whether or not to include the queried file in the result, if it is itself already stored in the database.  |
-| **prune_below : float>0.0<1.0,scalar>0**  | Matches below this value will be excluded from the result. Accepts either a value between 0.0 and 1.0 (inclusive), in which case the value is interpreted as a percentage of the total match count, or a scalar greater than 0, in which case the value is interpreted as being absolute. |
-| **group_by_path** | Whether or not to group matches under the same path together. |
+| :-----------------| :------------ |
+| **_path : string_** | Path to the file to be queried against the database.  |
+| **_no_identity_match : bool_**  | Whether or not to include the queried file in the result, if it is itself already stored in the database.  |
+| **_prune_below : float>0.0<1.0,scalar>0_**  | Matches below this value will be excluded from the result. Accepts either a value between 0.0 and 1.0 (inclusive), in which case the value is interpreted as a percentage of the total match count, or a scalar greater than 0, in which case the value is interpreted as being absolute. |
+| **_group_by_path_** | Whether or not to group matches under the same path together. |
 
 **write_match_files(_outdir, query_path, matches, sr=22050_)**
 
 Write matches to disk as audio files.
 
-| Parameter Name    | Description   |
-| ----------------- | ------------- |
-| **outdir : string** | Path to the location to store the folder of audio files created.  |
-| **query_path : string**  | Path to a file that has been queried against the database.  |
-| **matches : array**  | An array of matches resulting from querying the file supplied via **query_path**. |
-| **sr : scalar>0**  | Audio sample rate.  |
+| Parameter Name     | Description    |
+| :----------------- | :------------- |
+| **_outdir : string_** | Path to the location to store the folder of audio files created.  |
+| **_query_path : string_**  | Path to a file that has been queried against the database.  |
+| **_matches : array_**  | An array of matches resulting from querying the file supplied via **_query_path_**. |
+| **_sr : scalar>0_**  | Audio sample rate.  |
 
 ### Usage
 
