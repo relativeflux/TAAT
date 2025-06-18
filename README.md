@@ -45,6 +45,57 @@ You will also need to set the `LD_LIBRARY_PATH` environment variable (Linux- or 
 
 `export LD_LIBRARY_PATH=/path/to/TAAT/bin`
 
+<style>
+td, th {
+   border: none!important;
+}
+</style>
+
+### API
+
+**store(_path_)**
+
+Stores extracted fingerprints from an audio file in the database.
+
+Audio is decoded and resampled using ffmpeg, so ffmpeg needs to be available on your system in order for it to work.
+
+| | |
+| ------------ | ------------- |
+| **Parameters:**  | **path : string** |
+|              | Path to the file, or folder of files, whose fingerprints will be extracted and stored in the database.  |
+
+**stats()**
+
+Get statistics on the database.
+
+**query(_path, no_identity_match=True, prune_below=0.2, group_by_path=True_)**
+
+Extracts fingerprints from the supplied audio files and attempts to matche them with what is stored in the database.
+
+| | |
+| ------------ | ------------- |
+| **Parameters:**  | **path : string** |
+|              | Path to the file to be queried against the database.  |
+|              | **no_identity_match : bool**  |
+|              | Whether or not to include the queried file in the result, if it is itself already stored in the database.  |
+|              | **prune_below : float>0.0<1.0,scalar>0**  |
+|              | Matches below this value will be excluded from the result. Accepts either a value between 0.0 and 1.0 (inclusive), in which case the value is interpreted as a percentage of the total match count, or a scalar greater than 0, in which case the value is interpreted as being absolute. |
+
+**write_match_files(_outdir, query_path, matches, sr=22050_)**
+
+Write matches to disk as audio files.
+
+| | |
+| ------------ | ------------- |
+| **Parameters:**  | **outdir : string** |
+|              | Path to the location to store the folder of audio files created.  |
+|              | **query_path : string**  |
+|              | Path to a file that has been queried against the database.  |
+|              | **matches : array**  |
+|              | An array of matches resulting from querying the file supplied via **query_path**. |
+|              | **sr : scalar>0**  |
+|              | Audio sample rate.  |
+
 ### Usage
 
 ```python
@@ -53,18 +104,8 @@ from olaf_api import *
 
 store("path/to/audio/files/to/store")
 
-result = query("path/to/file/to/query.wav")
-
-# Just format the result
-get_ref_and_query_values(result)
-
-# Dedupe result
-deduped_result = dedupe_matches(result)
+query_results = query("path/to/file/to/query.wav")
 
 # Write matches as audio files
-write_path_files("path/to/output/folder", deduped_result, "path/to/ref/audio", "path/to/query/audio", 22050)
+write_path_files("path/to/output/folder", "path/to/queried/audio", query_results, sr=44100)
 ```
-
-### API
-
-TBC

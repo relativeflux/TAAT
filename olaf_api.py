@@ -110,7 +110,7 @@ def make_dir_for_file_path(parent_dir, file_path):
         os.makedirs(file_path_dir)
     return file_path_dir
 
-def write_match_files(outdir, query_path, matches, sr):
+def write_match_files(outdir, query_path, matches, sr=22050):
     matches_dir = make_dir_for_file_path(outdir, query_path)
     for match_group in matches:
         match_path = str(match_group[0]['path'], encoding="utf-8")
