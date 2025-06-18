@@ -70,6 +70,7 @@ Extracts fingerprints from the supplied audio files and attempts to matche them 
 | **path : string** | Path to the file to be queried against the database.  |
 | **no_identity_match : bool**  | Whether or not to include the queried file in the result, if it is itself already stored in the database.  |
 | **prune_below : float>0.0<1.0,scalar>0**  | Matches below this value will be excluded from the result. Accepts either a value between 0.0 and 1.0 (inclusive), in which case the value is interpreted as a percentage of the total match count, or a scalar greater than 0, in which case the value is interpreted as being absolute. |
+| **group_by_path** | Whether or not to group matches under the same path together. |
 
 **write_match_files(_outdir, query_path, matches, sr=22050_)**
 
