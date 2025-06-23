@@ -1,5 +1,5 @@
 import numpy as np
-#import pandas as pd
+import pandas as pd
 import librosa
 
 
@@ -88,6 +88,11 @@ def extract_features(filename, s, buffer, sr, features_list="all", fft_size=2048
             features[key] = value.item()
 
     return features
+
+def features_to_dataframe(feat):
+    rows = [list(row.values()) for row in feat]
+    col_names = list(feat[0].keys())
+    return pd.DataFrame(rows, columns=col_names)
 
 '''
 import librosa
