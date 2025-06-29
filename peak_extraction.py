@@ -1,5 +1,3 @@
-import os
-import sklearn
 import numpy as np
 import statistics
 import scipy
@@ -46,16 +44,13 @@ def find_peaks(filepath, sr=16000, n_fft=2048, hop_length=1024, threshold=2.75):
     peaks = [(x, y, db_mel_spect[y, x]) for y, x in peak_positions]
     return db_mel_spect, peaks
 
-def plot_peaks(db_mel_spect, peaks, figsize=[16,8]):
+def plot_peaks(spect, peaks, figsize=[16,8], s=1.5, color="red"):
     fig, ax = plt.subplots(figsize=figsize)
     ax.scatter(
         x=[p[0] for p in peaks],
         y=[p[1] for p in peaks],
-        s=1.5,
-        color="red"
+        s=s,
+        color=color
     )
-    ax.matshow(db_mel_spect[:500, :600])
+    ax.matshow(spect[:500, :600])
     plt.show()
-
-
-
