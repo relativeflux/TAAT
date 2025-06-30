@@ -26,7 +26,9 @@ class FingerprintExtractor:
 
         for (i, peak) in enumerate(peaks):
 
-            t1, f1, m1 = peaks[i]
+            t1 = peaks[i]['time']
+            f1 = peaks[i]['bin']
+            m1 = peaks[i]['magnitude']
             u1 = peaks[i]['usages']
 
             # Do not evaluate empty points.
@@ -41,7 +43,9 @@ class FingerprintExtractor:
 
             for j in range(i+1, len(peaks)):
                 
-                t2, f2, m2 = peaks[j]
+                t2 = peaks[j]['time']
+                f2 = peaks[j]['bin']
+                m2 = peaks[j]['magnitude']
                 u2 = peaks[j]['usages']
 
                 f_diff = abs(f1 - f2)
