@@ -32,58 +32,57 @@ class FingerprintExtractor:
 
 
     def hash(self, fp):
-	    f1 = fp['bin1']
-	    f2 = fp['bin2']
+        f1 = fp['bin1']
+        f2 = fp['bin2']
         f3 = fp['bin3'] or 0
-
-	    t1 = fp['time1']
-	    t2 = fp['time2']
+        
+        t1 = fp['time1']
+        t2 = fp['time2']
         t3 = fp['time3'] or 0
-
-	    m1 = fp['magnitude1']
-	    m2 = fp['magnitude2']
+        
+        m1 = fp['magnitude1']
+        m2 = fp['magnitude2']
         m3 = fp['magnitude3'] or 0
-
-	    f1LargerThanF2 = 1 if f2 > f3 else 0
-	    f2LargerThanF3 = 1 if f2 > f3 else 0
-	    f3LargerThanF1 = 1 if f3 > f1 else 0
-
-	    m1LargerThanm2 = 1 if m1 > m2 else 0
-	    m2LargerThanm3 = 1 if m2 > m3 else 0
-	    m3LargerThanm1 = 1 if m3 > m1 else 0
-	
-	    m1LargerThanm2 = 0
-	    m2LargerThanm3 = 0
-	    m3LargerThanm1 = 0
-
-	    dt1t2LargerThant3t2 = 1 if (t2 - t1) > (t3 - t2) else 0
-	    df1f2LargerThanf3f2 = 1 if abs(f2 - f1) > abs(f3 - f2) else 0
+        
+        f1LargerThanF2 = 1 if f2 > f3 else 0
+        f2LargerThanF3 = 1 if f2 > f3 else 0
+        f3LargerThanF1 = 1 if f3 > f1 else 0
+        
+        m1LargerThanm2 = 1 if m1 > m2 else 0
+        m2LargerThanm3 = 1 if m2 > m3 else 0
+        m3LargerThanm1 = 1 if m3 > m1 else 0
+        
+        m1LargerThanm2 = 0
+        m2LargerThanm3 = 0
+        m3LargerThanm1 = 0
+        
+        dt1t2LargerThant3t2 = 1 if (t2 - t1) > (t3 - t2) else 0
+        df1f2LargerThanf3f2 = 1 if abs(f2 - f1) > abs(f3 - f2) else 0
 
 	    # 9 bits f in range( 0 - 512) to 8 bits
-	    f1Range = (f1 >> 1)
-		
-	    # 7 bits (0-128) -> 5 bits
-	    df2f1 = (abs(f2 - f1) >> 2)
-	    df3f2 = (abs(f3 - f2) >> 2)
-		
-	    # 6 bits max
-	    diffT = (t3 - t1)
+        f1Range = (f1 >> 1)
 
-	    hash = 
-            ((diffT                &  ((1<<6)  -1)   ) << 0 ) +
-            ((f1LargerThanF2       &  ((1<<1 ) -1)   ) << 6 ) +
-            ((f2LargerThanF3       &  ((1<<1 ) -1)   ) << 7 ) +
-            ((f3LargerThanF1       &  ((1<<1 ) -1)   ) << 8 ) +
-            ((m1LargerThanm2       &  ((1<<1 ) -1)   ) << 9 ) +
-            ((m2LargerThanm3       &  ((1<<1 ) -1)   ) << 10) +
-            ((m3LargerThanm1       &  ((1<<1 ) -1)   ) << 11) +
-            ((dt1t2LargerThant3t2  &  ((1<<1 ) -1)   ) << 12) +
-            ((df1f2LargerThanf3f2  &  ((1<<1 ) -1)   ) << 13) +
-            ((f1Range              &  ((1<<8 ) -1)   ) << 14) +
-            ((df2f1                &  ((1<<6 ) -1)   ) << 22) +
+	    # 7 bits (0-128) -> 5 bits
+        df2f1 = (abs(f2 - f1) >> 2)
+        df3f2 = (abs(f3 - f2) >> 2)
+
+	    # 6 bits max
+        diffT = (t3 - t1)
+        
+        hash = ((diffT                &  ((1<<6)  -1)   ) << 0 ) + \
+            ((f1LargerThanF2       &  ((1<<1 ) -1)   ) << 6 ) + \
+            ((f2LargerThanF3       &  ((1<<1 ) -1)   ) << 7 ) + \
+            ((f3LargerThanF1       &  ((1<<1 ) -1)   ) << 8 ) + \
+            ((m1LargerThanm2       &  ((1<<1 ) -1)   ) << 9 ) + \
+            ((m2LargerThanm3       &  ((1<<1 ) -1)   ) << 10) + \
+            ((m3LargerThanm1       &  ((1<<1 ) -1)   ) << 11) + \
+            ((dt1t2LargerThant3t2  &  ((1<<1 ) -1)   ) << 12) + \
+            ((df1f2LargerThanf3f2  &  ((1<<1 ) -1)   ) << 13) + \
+            ((f1Range              &  ((1<<8 ) -1)   ) << 14) + \
+            ((df2f1                &  ((1<<6 ) -1)   ) << 22) + \
             ((df3f2                &  ((1<<6 ) -1)   ) << 28)
-	
-	return hash
+            
+        return hash
 
 
     def extract_fingerprints(self):
