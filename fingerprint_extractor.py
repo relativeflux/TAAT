@@ -7,12 +7,14 @@ from peak_extraction import find_peaks
 
 class FingerprintExtractor:
 
-    def __init__(self, dp_path):
+    def __init__(self, db_path=".taat/taat.db"):
 
-        self.db_path = db_path or ".taat/taat.db"
+        self.db_path = db_path
 
-        if not os.path.exists(self.db_path):
-            os.makedirs(self.db_path)
+        db_folder = os.path.dirname(self.db_path)
+
+        if not os.path.exists(db_folder):
+            os.makedirs(db_folder)
 
         self.db = sqlite3.connect(self.db_path)
 
@@ -27,7 +29,6 @@ class FingerprintExtractor:
         self.max_freq_distance = 128
 
         self.fingerprints = []
-        self.fingerprint_index = 0
         self.max_fingerprints = 300
 
 
@@ -88,6 +89,7 @@ class FingerprintExtractor:
     def extract_fingerprints(self):
 
         peaks = self.peaks
+        peaks = sorted(peaks, key=lambda x: x['time'])
 
         for (i, peak) in enumerate(peaks):
 
@@ -104,7 +106,7 @@ class FingerprintExtractor:
 
             # Do not evaluate event points that are too recent.
             diff_to_current_time = self.audio_block_index-self.max_time_distance
-            if (t1 > diff_to_current_time) : break
+            #if (t1 > diff_to_current_time) : break
 
             for j in range(i+1, len(peaks)):
                 
@@ -130,31 +132,32 @@ class FingerprintExtractor:
 
                     assert(t2>t1)
 
-                    if (self.fingerprint_index == self.max_fingerprints):
-                        print(f'Warning: Fingerprint maximum index {self.fingerprint_index} reached, fingerprints are ignored, consider increasing max_fingerprints if you see this often.')
+                    if (len(self.fingerprints) == self.max_fingerprints):
+                        print(f'Warning: Fingerprint maximum amount reached, fingerprints are ignored, consider increasing max_fingerprints if you see this often.')
                     else:
-                        self.fingerprints[self.fingerprint_index] = {
+                        self.fingerprints.append({
                             'time1': t1,
                             'time2': t2,
+                            'time3': t2,
                             'bin1': f1,
                             'bin2': f2,
+                            'bin3': f2,
                             'magnitude1': m1,
                             'magnitude2': m2,
-                        }
+                            'magnitude3': m2,
+                        })
 
                         # Count event point usages.
                         self.peaks[i]['usages'] += 1
                         self.peaks[j]['usages'] += 1
 
-                        self.fingerprint_index += 1
-
-                assert(self.fingerprint_index <= self.max_fingerprints)
+                assert(len(self.fingerprints) <= self.max_fingerprints)
 
         return self.fingerprints
 
 
     def store_single(self, filepath, sr=16000, n_fft=2048, hop_length=1024, threshold=2.75):
-        peaks = find_peaks(filepath, sr, n_fft, hop_length, threshold)
+        _, peaks = find_peaks(filepath, sr, n_fft, hop_length, threshold)
         self.peaks = [
             {'time': t, 'bin': f, 'magnitude': m, 'usages': 0} for (t, f, m) in peaks
         ]
@@ -164,16 +167,16 @@ class FingerprintExtractor:
         for fingerprint in self.fingerprints:
             hash = self.hash(fingerprint)
             sql_entries.append(f"('{filepath}', {hash}),")
-        sql_entries = "\n    " + "\n    ".join(sql_entries)
+        sql_entries = "\n    " + "\n    ".join(sql_entries)[:-1]
         self.db.cursor().execute(f"INSERT INTO fingerprints VALUES {sql_entries}")
         self.db.commit()
 
 
     def store(self, input):
-        if os.path.isfile(path):
+        if os.path.isfile(input):
             self.store_single(input)
-        elif os.path.isdir(path):
-            for dirpath, dirnames, filenames in os.walk(path):
+        elif os.path.isdir(input):
+            for dirpath, dirnames, filenames in os.walk(input):
                 for filename in filenames:
                     if filename.endswith(".wav"):
                         filepath = os.path.join(dirpath, filename)
