@@ -1,6 +1,27 @@
 import os
+import numpy as np
 import sqlite3
 from peak_extraction import find_peaks
+
+
+def jacard(a, b):
+    a = set(a)
+    b = set(b)
+    intersection = a.intersection(b)
+    union = a.union(b)
+    return len(intersection) / len(union)
+
+def minhash(docs, n):
+    union = list(set().union(*docs))
+    rows = []
+    for _ in range(0, n):
+        perm = np.random.permutation(union)
+        for (j, elt) in enumerate(perm, start=1):
+            row = list(np.zeros(len(docs), dtype=int))
+            for (k, doc) in enumerate(docs):
+                if elt in doc : row[k] = j
+            rows.append(row)
+    return rows
 
 
 # Adapted from Olaf/src/olaf_fp_extractor.c
