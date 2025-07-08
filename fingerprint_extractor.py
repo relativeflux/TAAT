@@ -1,32 +1,14 @@
 import os
+import json
+import binascii
 import numpy as np
 import sqlite3
 from peak_extraction import find_peaks
 
 
-def jacard(a, b):
-    a = set(a)
-    b = set(b)
-    intersection = a.intersection(b)
-    union = a.union(b)
-    return len(intersection) / len(union)
-
-def minhash(docs, n):
-    union = list(set().union(*docs))
-    rows = []
-    for _ in range(0, n):
-        perm = np.random.permutation(union)
-        for (j, elt) in enumerate(perm, start=1):
-            row = list(np.zeros(len(docs), dtype=int))
-            for (k, doc) in enumerate(docs):
-                if elt in doc : row[k] = j
-            rows.append(row)
-    return rows
-
-
 # Adapted from Olaf/src/olaf_fp_extractor.c
 
-class FingerprintExtractor:
+class FingerprintExtractorOLD:
 
     def __init__(self, db_path=".taat/taat.db"):
 
@@ -202,4 +184,230 @@ class FingerprintExtractor:
                     if filename.endswith(".wav"):
                         filepath = os.path.join(dirpath, filename)
                         self.store_single(filepath)
+
+# -----------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------
+
+'''
+Sample test data from:
+https://medium.com/@hbrylkowski/locality-sensitive-hashing-explained-304eb39291e4
+
+A = ['Who', 'was', 'the', 'first', 'king', 'of', 'Poland']
+B = ['Who', 'was', 'the', 'first', 'ruler', 'of', 'Poland']
+C = ['Who', 'was', 'the', 'last', 'pharaoh', 'of', 'Egypt']
+
+[["last", "Who", "Egypt", "king", "ruler", "was", "of", "Poland", "pharaoh", "the", "first"],
+["the", "of", "Poland", "was", "first", "ruler", "Who", "Egypt", "pharaoh", "last", "king"],
+["first", "king", "Egypt", "was", "Who", "of", "pharaoh", "last", "Poland", "ruler", "the"],
+["ruler", "king", "Poland", "Who", "the", "pharaoh", "of", "first", "Egypt", "last", "was"],
+["king", "Poland", "ruler", "last", "pharaoh", "the", "Who", "Egypt", "first", "of", "was"],
+["the", "pharaoh", "Who", "ruler", "Poland", "Egypt", "king", "last", "was", "first", "of"]]
+'''
+
+
+def jacard(a, b):
+    a = set(a)
+    b = set(b)
+    intersection = a.intersection(b)
+    union = a.union(b)
+    return len(intersection) / len(union)
+
+def minhash(docs, n=5):
+    union = list(set().union(*docs))
+    rows = []
+    for i in range(0, n):
+        perm = np.random.permutation(union)
+        for (j, elt) in enumerate(perm, start=1):
+            row = list(np.zeros(len(docs), dtype=int))
+            for (k, doc) in enumerate(docs):
+                if elt in doc : row[k] = j
+            rows.append(row)
+    out = []
+    new_shape = [n,len(union),len(docs)]
+    for elt in np.reshape(rows, new_shape):
+        s = np.transpose(elt)
+        t = []
+        for u in s:
+            v = next(x for x in u if x>0)
+            t.append(v)
+        out.append(t)
+    return np.transpose(out)
+
+def hashcode(x, a, b, c):
+    return (a*x + b) % c
+
+def pickRandomCoeffs(k, maxShingleID):
+  # Create a list of 'k' random values.
+  randList = []
+  
+  while k > 0:
+    # Get a random shingle ID.
+    randIndex = np.random.randint(0, maxShingleID)
+  
+    # Ensure that each random number is unique.
+    while randIndex in randList:
+      randIndex = np.random.randint(0, maxShingleID)
+    
+    # Add the random number to the list.
+    randList.append(randIndex)
+    k = k - 1
+    
+  return randList
+
+class FingerprintExtractor:
+
+    def __init__(self, source_dir, numHashes=10, sr=16000, n_fft=1024, hop_length=1024, peak_threshold=2.75):
+
+        self.source_dir = source_dir
+        self.sr = sr
+        self.n_fft = n_fft
+        self.hop_length = hop_length
+        self.peak_threshold = peak_threshold
+
+        self.numHashes = numHashes
+
+        self.docNames = []
+
+        self.fingerprints = {}
+        self.signatures = []
+
+    def extract_fingerprints(self):
+
+        sr = self.sr
+        n_fft = self.n_fft
+        hop_length = self.hop_length
+        threshold = self.peak_threshold
+
+        for dirpath, dirnames, filenames in os.walk(self.source_dir):
+            for filename in filenames:
+                if filename.endswith(".wav"):
+                    filepath = os.path.join(dirpath, filename)
+                    self.docNames.append(filepath)
+                    _, peaks = find_peaks(filepath, sr, n_fft, hop_length, threshold)
+                    
+                    #peaks = sorted(peaks)
+
+                    fingerprints = set()
+
+                    for i in range(0, len(peaks)):
+
+                        [t1, f1, m1] = peaks[i]
+
+                        for j in range(i+1, len(peaks)):
+                            
+                            [t2, f2, m2] = peaks[j]
+
+                            d = {
+                                'time1': int(t1),
+                                'time2': int(t2),
+                                'bin1': int(f1),
+                                'bin2': int(f2),
+                                'mag1': float(m1),
+                                'mag2': float(m2),
+                            }
+
+                            d = json.dumps(d).encode("ascii")
+                            d = binascii.crc32(d) & 0xffffffff
+                            
+                            fingerprints.add(d)
+
+                    self.fingerprints[filepath] = fingerprints
+
+    def generate_minhash_sigs(self):
+        maxShingleID = 2**32-1
+        nextPrime = 4294967311
+
+        a = pickRandomCoeffs(self.numHashes, maxShingleID)
+        b = pickRandomCoeffs(self.numHashes, maxShingleID)
+        
+        for docID in self.docNames:
+
+            # Get the shingle set for this document.
+            shingleIDSet = self.fingerprints[docID]
+            
+            signature = []
+  
+            # For each of the random hash functions...
+            for i in range(0, self.numHashes):
+                
+                minHashCode = nextPrime + 1
+                
+                # For each shingle in the document...
+                for shingleID in shingleIDSet:
+                    h = hashcode(shingleID, a[i], b[i], nextPrime)
+                    
+                    # Track the lowest hash code seen.
+                    if h < minHashCode:
+                        minHashCode = h
+
+                    # Add the smallest hash code value as component number 'i' of the signature.
+                    signature.append(minHashCode)
+            
+            # Store the MinHash signature for this document.
+            self.signatures.append(signature)
+
+    def query(self, filepath, sr=16000, n_fft=1024, hop_length=1024, peak_threshold=2.75):
+        _, peaks = find_peaks(filepath, sr, n_fft, hop_length, threshold)
+                    
+        #peaks = sorted(peaks)
+
+        fingerprints = set()
+
+        for i in range(0, peaks):
+
+            [t1, f1, m1] = peaks[i]
+
+            for j in range(i+1, len(peaks)):
+                
+                [t2, f2, m2] = peaks[j]
+
+                d = {
+                    'time1': t1,
+                    'time2': t2,
+                    'bin1': f1,
+                    'bin2': f2,
+                    'mag1': m1,
+                    'mag2': m2,
+                }
+
+                d = json.dumps(d).encode("ascii")
+                d = binascii.crc32(d) & 0xffffffff
+                
+                fingerprints.add(d)
+
+        maxShingleID = 2**32-1
+        nextPrime = 4294967311
+
+        a = pickRandomCoeffs(self.numHashes, maxShingleID)
+        b = pickRandomCoeffs(self.numHashes, maxShingleID)
+
+        signature = []
+  
+        # For each of the random hash functions...
+        for i in range(0, numHashes):
+            
+            minHashCode = nextPrime + 1
+            
+            # For each shingle in the document...
+            for shingleID in fingerprints:
+                h = hashcode(shingleID, a[i], b[i], nextPrime)
+                
+                # Track the lowest hash code seen.
+                if h < minHashCode:
+                    minHashCode = h
+
+                # Add the smallest hash code value as component number 'i' of the signature.
+                signature.append(minHashCode)
+
+        for i in range(0, len(self.docNames)):
+            count = 0
+            # Count the number of positions in the minhash signature which are equal...
+            for k in range(0, self.numHashes):
+                count = count + (self.signatures[k] == signature[k])
+
+        return count / self.numHashes
+
+
+
+        
 
