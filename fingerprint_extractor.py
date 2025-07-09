@@ -274,6 +274,9 @@ class FingerprintExtractor:
         self.fingerprints = {}
         self.signatures = []
 
+        self.coeffA = pickRandomCoeffs(self.numHashes)
+        self.coeffB = pickRandomCoeffs(self.numHashes)
+
     def extract_fingerprints_for_file(self, filepath, sr, n_fft, hop_length, threshold):
         _, peaks = find_peaks(filepath, sr, n_fft, hop_length, threshold)
         peaks = sorted(peaks)
@@ -285,16 +288,12 @@ class FingerprintExtractor:
             chunk = peaks[i:i+2]
             [[t1, f1, m1], [t2, f2, m2]] = chunk
 
-            d = {
-                    't1': t1,
-                    't2': t2,
-                    'f1': f1,
-                    'f2': f2,
-                    'm1': m1,
-                    'm2': m2
-                }
-
+            '''
+            d = { 't1': t1, 't2': t2, 'f1': f1, 'f2': f2, 'm1': m1, 'm2': m2 }
             d = json.dumps(d).encode("ascii")
+            '''
+
+            d = f"{t1} {f1} {m1} {t2} {f2} {m2}".encode("ascii")
             d = binascii.crc32(d) & 0xffffffff
             
             fingerprints.add(d)
@@ -337,8 +336,8 @@ class FingerprintExtractor:
 
     def generate_minhash_sigs(self):
 
-        a = pickRandomCoeffs(self.numHashes)
-        b = pickRandomCoeffs(self.numHashes)
+        a = self.coeffA
+        b = self.coeffB
         
         for docID in self.docNames:
 
@@ -353,17 +352,24 @@ class FingerprintExtractor:
     def query(self, filepath, sr=16000, n_fft=1024, hop_length=1024, peak_threshold=2.75):
         fingerprints = self.extract_fingerprints_for_file(filepath, sr, n_fft, hop_length, peak_threshold)
 
-        a = pickRandomCoeffs(self.numHashes)
-        b = pickRandomCoeffs(self.numHashes)
+        a = self.coeffA
+        b = self.coeffB
 
-        signature = self.get_minhash_signature(fingerprints, a, b)
+        query_sig = self.get_minhash_signature(fingerprints, a, b)
+
+        matches = {}
 
         for i in range(0, len(self.docNames)):
+            ref_sig = self.signatures[i]
             count = 0
-            # Count the number of positions in the minhash signature which are equal...
+            # Count the number of positions in the signatures which are equal...
             for k in range(0, self.numHashes):
-                count = count + (self.signatures[k] == signature[k])
+                if len(ref_sig) >= self.numHashes:
+                    count = count + (ref_sig[k] == query_sig[k])
+                res = count / self.numHashes
+            if res > 0:
+                matches[self.docNames[i]] = res
 
-        return count / self.numHashes
+        return matches
 
 
