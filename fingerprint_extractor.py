@@ -271,6 +271,32 @@ class FingerprintExtractor:
         self.fingerprints = {}
         self.signatures = []
 
+    def _extract_fingerprints(self, filepath, sr, n_fft, hop_length, threshold):
+        _, peaks = find_peaks(filepath, sr, n_fft, hop_length, threshold)
+        peaks = sorted(peaks)
+
+        fingerprints = set()
+
+        for i in range(len(peaks) - 3):
+
+            chunk = peaks[i:i+k]
+            [[t1, f1, m1], [t2, f2, m2]] = chunk
+
+            d = {
+                    't1': int(t1),
+                    't2': int(t2),
+                    'f1': int(f1),
+                    'f2': int(f2),
+                    'm1': float(m1),
+                    'm2': float(m2),
+                }
+
+            d = json.dumps(d).encode("ascii")
+            d = binascii.crc32(d) & 0xffffffff
+            
+            fingerprints.add(d)
+        return fingerprints
+
     def extract_fingerprints(self):
 
         sr = self.sr
@@ -283,34 +309,7 @@ class FingerprintExtractor:
                 if filename.endswith(".wav"):
                     filepath = os.path.join(dirpath, filename)
                     self.docNames.append(filepath)
-                    _, peaks = find_peaks(filepath, sr, n_fft, hop_length, threshold)
-                    
-                    #peaks = sorted(peaks)
-
-                    fingerprints = set()
-
-                    for i in range(0, len(peaks)):
-
-                        [t1, f1, m1] = peaks[i]
-
-                        for j in range(i+1, len(peaks)):
-                            
-                            [t2, f2, m2] = peaks[j]
-
-                            d = {
-                                'time1': int(t1),
-                                'time2': int(t2),
-                                'bin1': int(f1),
-                                'bin2': int(f2),
-                                'mag1': float(m1),
-                                'mag2': float(m2),
-                            }
-
-                            d = json.dumps(d).encode("ascii")
-                            d = binascii.crc32(d) & 0xffffffff
-                            
-                            fingerprints.add(d)
-
+                    fingerprints = self._extract_fingerprints(filepath, sr, n_fft, hop_length, threshold)
                     self.fingerprints[filepath] = fingerprints
 
     def generate_minhash_sigs(self):
@@ -347,34 +346,8 @@ class FingerprintExtractor:
             self.signatures.append(signature)
 
     def query(self, filepath, sr=16000, n_fft=1024, hop_length=1024, peak_threshold=2.75):
-        _, peaks = find_peaks(filepath, sr, n_fft, hop_length, threshold)
+        fingerprints = self._extract_fingerprints(filepath, sr, n_fft, hop_length, peak_threshold)
                     
-        #peaks = sorted(peaks)
-
-        fingerprints = set()
-
-        for i in range(0, peaks):
-
-            [t1, f1, m1] = peaks[i]
-
-            for j in range(i+1, len(peaks)):
-                
-                [t2, f2, m2] = peaks[j]
-
-                d = {
-                    'time1': t1,
-                    'time2': t2,
-                    'bin1': f1,
-                    'bin2': f2,
-                    'mag1': m1,
-                    'mag2': m2,
-                }
-
-                d = json.dumps(d).encode("ascii")
-                d = binascii.crc32(d) & 0xffffffff
-                
-                fingerprints.add(d)
-
         maxShingleID = 2**32-1
         nextPrime = 4294967311
 
@@ -384,7 +357,7 @@ class FingerprintExtractor:
         signature = []
   
         # For each of the random hash functions...
-        for i in range(0, numHashes):
+        for i in range(0, self.numHashes):
             
             minHashCode = nextPrime + 1
             

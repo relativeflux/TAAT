@@ -41,7 +41,7 @@ def find_peaks(filepath, sr=16000, n_fft=2048, hop_length=1024, threshold=2.75):
     peak_positions = scipy.ndimage.maximum_position(
         zscore_matrix, labelled_matrix, label_indices)
     # Create list of peaks (time, frequency, intensity).
-    peaks = [(x, y, db_mel_spect[y, x]) for y, x in peak_positions]
+    peaks = [(int(x), int(y), float(db_mel_spect[y, x])) for y, x in peak_positions]
     return db_mel_spect, peaks
 
 def plot_peaks(spect, peaks, figsize=[16,8], s=1.5, color="red"):
