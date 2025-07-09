@@ -236,7 +236,10 @@ def minhash(docs, n=5):
 def hashcode(x, a, b, c):
     return (a*x + b) % c
 
-def pickRandomCoeffs(k, maxShingleID):
+maxShingleID = 2**32-1
+nextPrime = 4294967311
+
+def pickRandomCoeffs(k):
   # Create a list of 'k' random values.
   randList = []
   
@@ -271,7 +274,7 @@ class FingerprintExtractor:
         self.fingerprints = {}
         self.signatures = []
 
-    def _extract_fingerprints(self, filepath, sr, n_fft, hop_length, threshold):
+    def extract_fingerprints_for_file(self, filepath, sr, n_fft, hop_length, threshold):
         _, peaks = find_peaks(filepath, sr, n_fft, hop_length, threshold)
         peaks = sorted(peaks)
 
@@ -279,16 +282,16 @@ class FingerprintExtractor:
 
         for i in range(len(peaks) - 3):
 
-            chunk = peaks[i:i+k]
+            chunk = peaks[i:i+2]
             [[t1, f1, m1], [t2, f2, m2]] = chunk
 
             d = {
-                    't1': int(t1),
-                    't2': int(t2),
-                    'f1': int(f1),
-                    'f2': int(f2),
-                    'm1': float(m1),
-                    'm2': float(m2),
+                    't1': t1,
+                    't2': t2,
+                    'f1': f1,
+                    'f2': f2,
+                    'm1': m1,
+                    'm2': m2
                 }
 
             d = json.dumps(d).encode("ascii")
@@ -309,51 +312,10 @@ class FingerprintExtractor:
                 if filename.endswith(".wav"):
                     filepath = os.path.join(dirpath, filename)
                     self.docNames.append(filepath)
-                    fingerprints = self._extract_fingerprints(filepath, sr, n_fft, hop_length, threshold)
+                    fingerprints = self.extract_fingerprints_for_file(filepath, sr, n_fft, hop_length, threshold)
                     self.fingerprints[filepath] = fingerprints
 
-    def generate_minhash_sigs(self):
-        maxShingleID = 2**32-1
-        nextPrime = 4294967311
-
-        a = pickRandomCoeffs(self.numHashes, maxShingleID)
-        b = pickRandomCoeffs(self.numHashes, maxShingleID)
-        
-        for docID in self.docNames:
-
-            # Get the shingle set for this document.
-            shingleIDSet = self.fingerprints[docID]
-            
-            signature = []
-  
-            # For each of the random hash functions...
-            for i in range(0, self.numHashes):
-                
-                minHashCode = nextPrime + 1
-                
-                # For each shingle in the document...
-                for shingleID in shingleIDSet:
-                    h = hashcode(shingleID, a[i], b[i], nextPrime)
-                    
-                    # Track the lowest hash code seen.
-                    if h < minHashCode:
-                        minHashCode = h
-
-                    # Add the smallest hash code value as component number 'i' of the signature.
-                    signature.append(minHashCode)
-            
-            # Store the MinHash signature for this document.
-            self.signatures.append(signature)
-
-    def query(self, filepath, sr=16000, n_fft=1024, hop_length=1024, peak_threshold=2.75):
-        fingerprints = self._extract_fingerprints(filepath, sr, n_fft, hop_length, peak_threshold)
-                    
-        maxShingleID = 2**32-1
-        nextPrime = 4294967311
-
-        a = pickRandomCoeffs(self.numHashes, maxShingleID)
-        b = pickRandomCoeffs(self.numHashes, maxShingleID)
-
+    def get_minhash_signature(self, shingleIDSet, a, b):
         signature = []
   
         # For each of the random hash functions...
@@ -362,7 +324,7 @@ class FingerprintExtractor:
             minHashCode = nextPrime + 1
             
             # For each shingle in the document...
-            for shingleID in fingerprints:
+            for shingleID in shingleIDSet:
                 h = hashcode(shingleID, a[i], b[i], nextPrime)
                 
                 # Track the lowest hash code seen.
@@ -371,6 +333,30 @@ class FingerprintExtractor:
 
                 # Add the smallest hash code value as component number 'i' of the signature.
                 signature.append(minHashCode)
+        return signature
+
+    def generate_minhash_sigs(self):
+
+        a = pickRandomCoeffs(self.numHashes)
+        b = pickRandomCoeffs(self.numHashes)
+        
+        for docID in self.docNames:
+
+            # Get the shingle set for this document.
+            shingleIDSet = self.fingerprints[docID]
+            
+            signature = self.get_minhash_signature(shingleIDSet, a, b)
+            
+            # Store the MinHash signature for this document.
+            self.signatures.append(signature)
+
+    def query(self, filepath, sr=16000, n_fft=1024, hop_length=1024, peak_threshold=2.75):
+        fingerprints = self.extract_fingerprints_for_file(filepath, sr, n_fft, hop_length, peak_threshold)
+
+        a = pickRandomCoeffs(self.numHashes)
+        b = pickRandomCoeffs(self.numHashes)
+
+        signature = self.get_minhash_signature(fingerprints, a, b)
 
         for i in range(0, len(self.docNames)):
             count = 0
@@ -380,7 +366,4 @@ class FingerprintExtractor:
 
         return count / self.numHashes
 
-
-
-        
 
