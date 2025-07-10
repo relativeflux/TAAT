@@ -349,6 +349,10 @@ class FingerprintExtractor:
             # Store the MinHash signature for this document.
             self.signatures.append(signature)
 
+    def store(self):
+        self.extract_fingerprints()
+        self.generate_minhash_sigs()
+
     def query(self, filepath, sr=16000, n_fft=1024, hop_length=1024, peak_threshold=2.75):
         fingerprints = self.extract_fingerprints_for_file(filepath, sr, n_fft, hop_length, peak_threshold)
 
