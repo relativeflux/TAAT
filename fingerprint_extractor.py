@@ -330,8 +330,8 @@ class FingerprintExtractor:
                 if h < minHashCode:
                     minHashCode = h
 
-                # Add the smallest hash code value as component number 'i' of the signature.
-                signature.append(minHashCode)
+            # Add the smallest hash code value as component number 'i' of the signature.
+            signature.append(minHashCode)
         return signature
 
     def generate_minhash_sigs(self):
