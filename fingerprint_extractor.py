@@ -3,7 +3,8 @@ import json
 import binascii
 import numpy as np
 import sqlite3
-from peak_extraction import find_peaks
+from peak_extraction import *
+from LSH import *
 
 
 # Adapted from Olaf/src/olaf_fp_extractor.c
@@ -284,7 +285,6 @@ class FingerprintExtractor:
         fingerprints = set()
 
         for i in range(len(peaks) - 3):
-
             chunk = peaks[i:i+2]
             [[t1, f1, m1], [t2, f2, m2]] = chunk
 
@@ -292,10 +292,12 @@ class FingerprintExtractor:
             d = { 't1': t1, 't2': t2, 'f1': f1, 'f2': f2, 'm1': m1, 'm2': m2 }
             d = json.dumps(d).encode("ascii")
             '''
-
-            d = f"{t1} {f1} {m1} {t2} {f2} {m2}".encode("ascii")
-            d = binascii.crc32(d) & 0xffffffff
             
+            #d = f"{t1} {f1} {m1} {t2} {f2} {m2}".encode("ascii")
+            #d = binascii.crc32(d) & 0xffffffff
+
+            d = 1 + f2 + f1 * (2 ** 8) + abs(t2-t1) * (2 ** 16)
+
             fingerprints.add(d)
         return fingerprints
 
@@ -377,3 +379,10 @@ class FingerprintExtractor:
         return matches
 
 
+    def lsh(self, b):
+        lsh = LSH(b)
+        for signature in self.signatures:
+            lsh.add_hash(signature)
+        candidate_pairs = lsh.check_candidates()
+        return [[self.docNames[a], self.docNames[b]] \
+            for (a,b) in candidate_pairs]
