@@ -260,9 +260,10 @@ def pickRandomCoeffs(k):
 
 class FingerprintExtractor:
 
-    def __init__(self, source_dir, numHashes=10, sr=16000, n_fft=1024, hop_length=1024, peak_threshold=2.75):
+    def __init__(self, source_dir, analysis_type="melspectrogram", numHashes=10, sr=16000, n_fft=1024, hop_length=1024, peak_threshold=2.75):
 
         self.source_dir = source_dir
+        self.analysis_type = analysis_type
         self.sr = sr
         self.n_fft = n_fft
         self.hop_length = hop_length
@@ -278,8 +279,15 @@ class FingerprintExtractor:
         self.coeffA = pickRandomCoeffs(self.numHashes)
         self.coeffB = pickRandomCoeffs(self.numHashes)
 
-    def extract_fingerprints_for_file(self, filepath, sr, n_fft, hop_length, threshold):
-        _, peaks = find_peaks(filepath, sr, n_fft, hop_length, threshold)
+    def extract_fingerprints_for_file(self, filepath):
+
+        analysis_type = self.analysis_type
+        sr = self.sr
+        n_fft = self.n_fft
+        hop_length = self.hop_length
+        threshold = self.peak_threshold
+
+        _, peaks = find_peaks(filepath, analysis_type, sr, n_fft, hop_length, threshold)
         peaks = sorted(peaks)
 
         fingerprints = set()
@@ -302,18 +310,12 @@ class FingerprintExtractor:
         return fingerprints
 
     def extract_fingerprints(self):
-
-        sr = self.sr
-        n_fft = self.n_fft
-        hop_length = self.hop_length
-        threshold = self.peak_threshold
-
         for dirpath, dirnames, filenames in os.walk(self.source_dir):
             for filename in filenames:
                 if filename.endswith(".wav"):
                     filepath = os.path.join(dirpath, filename)
                     self.docNames.append(filepath)
-                    fingerprints = self.extract_fingerprints_for_file(filepath, sr, n_fft, hop_length, threshold)
+                    fingerprints = self.extract_fingerprints_for_file(filepath)
                     self.fingerprints[filepath] = fingerprints
 
     def get_minhash_signature(self, shingleIDSet, a, b):
@@ -355,8 +357,8 @@ class FingerprintExtractor:
         self.extract_fingerprints()
         self.generate_minhash_sigs()
 
-    def query(self, filepath, sr=16000, n_fft=1024, hop_length=1024, peak_threshold=2.75):
-        fingerprints = self.extract_fingerprints_for_file(filepath, sr, n_fft, hop_length, peak_threshold)
+    def query(self, filepath):
+        fingerprints = self.extract_fingerprints_for_file(filepath)
 
         a = self.coeffA
         b = self.coeffB
