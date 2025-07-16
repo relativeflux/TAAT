@@ -38,7 +38,7 @@ def plot_cross_similarity_matrix(xsim, hop_length=2048):
 
 def plot_cross_similarity_matrix(xsim, hop_length=2048):
     fig, ax = plt.subplots(ncols=1, sharex=True, sharey=True)
-    imgsim = librosa.display.specshow(xsim, x_axis='s', y_axis='s',
+    imgsim = librosa.display.specshow(xsim, cmap='magma_r', x_axis='s', y_axis='s',
                              hop_length=hop_length, ax=ax)
     ax.set(title='Binary cross-similarity (symmetric)')
     fig.colorbar(imgsim, ax=ax, orientation='horizontal', ticks=[0, 1])

@@ -86,3 +86,25 @@ def plot_peaks(spect, peaks, figsize=[16,8], s=1.5, color="red"):
     )
     ax.matshow(spect[:500, :600])
     plt.show()
+
+
+def get_peaks_xsim(comp_path, ref_path, analysis_type="melspectrogram", sr=16000, n_fft=2048, hop_length=1024, peak_threshold=2.75, k=2, metric='euclidean', mode='affinity'):
+    ref_spect, ref_peaks = find_peaks(ref_path, analysis_type, sr, n_fft, hop_length, peak_threshold)
+    ref_zeros = np.zeros(ref_spect.shape)
+    for [t, f, m] in ref_peaks:
+        ref_zeros[f][t] = m
+    comp_spect, comp_peaks = find_peaks(comp_path, analysis_type, sr, n_fft, hop_length, peak_threshold)
+    comp_zeros = np.zeros(comp_spect.shape)
+    for [t, f, m] in comp_peaks:
+        comp_zeros[f][t] = m
+    x_ref = librosa.feature.stack_memory(ref_zeros, n_steps=10, delay=3)
+    x_comp = librosa.feature.stack_memory(comp_zeros, n_steps=10, delay=3)
+    return librosa.segment.cross_similarity(x_comp, x_ref, k=k, metric=metric, mode=mode)
+
+'''
+from cross_similarity import plot_cross_similarity_matrix
+
+xsim = get_peaks_xsim('test5/16000kHz/chunks/001_End_of_the_World_(op.1)_chunk_7.wav', 'test5/16000kHz/chunks/005_Disintegration_(op.10)_chunk_9.wav', peak_threshold=0.1, metric="cosine")
+
+plot_cross_similarity_matrix(xsim, hop_length=1024)
+'''
