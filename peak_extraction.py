@@ -76,7 +76,7 @@ def find_peaks(filepath, sr=16000, n_fft=2048, hop_length=1024, threshold=2.75):
     return db_mel_spect, peaks
 '''
 
-def plot_peaks(spect, peaks, figsize=[16,8], s=1.5, color="red"):
+def plot_peaks(spect, peaks, peaks_only=False, figsize=[16,8], s=1.5, color="red"):
     fig, ax = plt.subplots(figsize=figsize)
     ax.scatter(
         x=[p[0] for p in peaks],
@@ -84,7 +84,8 @@ def plot_peaks(spect, peaks, figsize=[16,8], s=1.5, color="red"):
         s=s,
         color=color
     )
-    ax.matshow(spect[:500, :600])
+    bg = np.zeros(spect.shape) if peaks_only else spect
+    ax.matshow(bg[:500, :600])
     plt.show()
 
 
