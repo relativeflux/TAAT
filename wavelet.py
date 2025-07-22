@@ -1,9 +1,11 @@
 import pywt
-from skimage import io, color
+from PIL import Image, ImageOps
 
 
 def get_wavelet(filepath):
-    img = io.imread(filepath)
-    gs = color.rgb2gray(img)
-    coeffs = pywt.dwt2(gs, "haar")
-    return coeffs
+    img = Image.open(filepath)
+    img = img.convert("RGB")
+    rgb = img.split()
+    [[r,_],[g,_],[b,_]] = [pywt.dwt2(chan, "haar") for chan in rgb]
+    rgb = [Image.fromarray(arr) for arr in [r,g,b]]
+    return Image.merge("RGB", rgb)

@@ -279,6 +279,18 @@ class FingerprintExtractor:
         self.coeffA = pickRandomCoeffs(self.numHashes)
         self.coeffB = pickRandomCoeffs(self.numHashes)
 
+    '''
+    def extract_fingerprints_for_file(self, filepath):
+        with open(filepath) as f:
+            words = f.readline().split(" ")
+            shinglesInDoc = set()
+            for i in range(0, len(words) - 2):
+                shingle = (words[i] + " " + words[i + 1] + " " + words[i + 2]).encode("ascii")
+                crc = binascii.crc32(shingle) & 0xffffffff
+                shinglesInDoc.add(crc)
+        return shinglesInDoc
+    '''
+
     def extract_fingerprints_for_file(self, filepath):
 
         analysis_type = self.analysis_type
