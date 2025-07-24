@@ -109,3 +109,22 @@ xsim = get_peaks_xsim('test5/16000kHz/chunks/001_End_of_the_World_(op.1)_chunk_7
 
 plot_cross_similarity_matrix(xsim, hop_length=1024)
 '''
+
+import os
+import soundfile as sf
+
+def get_layer(filepath, outdir, analysis_type="stft", sr=16000, n_fft=2048, hop_length=1024, peak_threshold=2.75):
+    audio, _ = librosa.load(filepath, sr=sr, mono=True)
+    spect = False
+    if analysis_type=="stft":
+        spect = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)
+    else:
+        spect = librosa.feature.melspectrogram(y=audio, sr=sr, n_fft=n_fft, hop_length=hop_length)
+    _, peaks = find_peaks(filepath, analysis_type=analysis_type, sr=sr, n_fft=n_fft, hop_length=hop_length, threshold=peak_threshold)
+    phase_stft = np.angle(spect)
+    zeros = np.zeros(spect.shape)
+    for [t, f, m] in peaks:
+        zeros[f][t] = m
+    reconstruct = zeros * np.exp(1j * phase_stft)
+    layer = librosa.istft(reconstruct, n_fft=n_fft, hop_length=hop_length)
+    sf.write(os.path.join(outdir, os.path.basename(filepath)), layer, sr)
