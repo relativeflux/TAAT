@@ -75,3 +75,31 @@ V = V + 1e-10
 
 W, H, cost_function = source_separation(V, 2, beta=2, threshold=0.05, max_iter=2000)
 '''
+
+def source_separation2(filepath, sr=sr, n_fft=1024, hop_length=1024):
+    audio, _ = librosa.load(filepath, sr=sr, mono=True)
+    D = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)
+    D_harm, D_perc = librosa.decompose.hpss(D)
+    return D, D_harm, D_perc
+
+def plot_source_separation(D, D_harm, D_perc):
+    # Pre-compute a global reference power from the input spectrum
+    rp = np.max(np.abs(D))
+    db_spect = librosa.amplitude_to_db(np.abs(D), ref=rp)
+    db_harm = librosa.amplitude_to_db(np.abs(D_harm), ref=rp)
+    db_perc = librosa.amplitude_to_db(np.abs(D_perc), ref=rp)
+    #
+    fig, ax = plt.subplots(nrows=3, sharex=True, sharey=True)
+    #
+    img = librosa.display.specshow(db_spect, y_axis='log', x_axis='time', ax=ax[0])
+    ax[0].set(title='Full spectrogram')
+    ax[0].label_outer()
+    #
+    librosa.display.specshow(db_harm, y_axis='log', x_axis='time', ax=ax[1])
+    ax[1].set(title='Harmonic spectrogram')
+    ax[1].label_outer()
+    #
+    librosa.display.specshow(db_perc, y_axis='log', x_axis='time', ax=ax[2])
+    ax[2].set(title='Percussive spectrogram')
+    fig.colorbar(img, ax=ax)
+    plt.show()

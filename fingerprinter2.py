@@ -4,6 +4,15 @@ from peak_extraction import *
 
 
 def hash_func(vec, proj):
+    bools = np.dot(proj, vec) > 0
+    return bool2int(bools)
+
+def bool2int(x):
+    y = 0
+    for i,j in enumerate(x):
+        if j: y += 1<<i
+    return y
+
 
 
 class HashTable():
@@ -17,14 +26,14 @@ class HashTable():
     def add(self, vec, label):
         entry = { "vector": None, "label": label }
         h = hash_func(vec, self.projections)
-        if self.table.has_key(h):
+        if h in self.table:
             self.table[h].append(entry)
         else:
             self.table[h] = [entry]
 
     def query(self, vec):
         h = hash_func(vec, self.projections)
-        if self.table.has_key(h):
+        if h in self.table:
             results = self.table[h]
         else:
             results = list()
@@ -34,12 +43,12 @@ class HashTable():
 class LSH():
 
     def __init__(self, dim):
-        self.num_tables = 10
-        self.hash_size = 10
+        self.num_tables = 16
+        self.hash_size = 16
         self.dim = dim
         self.tables = list()
         for i in range(self.num_tables):
-            self.tables.append(Table(self.hash_size, self.dim))
+            self.tables.append(HashTable(self.hash_size, self.dim))
 
     def add(self, vec, label):
         for table in self.tables:
@@ -52,7 +61,7 @@ class LSH():
         return results
 
 
-class FimgerprintExtractor2():
+class FingerprintExtractor2():
 
     def __init__(self, source_dir, analysis_type="melspectrogram", sr=16000, n_fft=1024, hop_length=1024, peak_threshold=2.75):
 
@@ -62,7 +71,7 @@ class FimgerprintExtractor2():
         self.n_fft = n_fft
         self.hop_length = hop_length
         self.peak_threshold = peak_threshold
-        self.fv_size = 1000
+        self.fv_size = 469
         self.lsh = LSH(self.fv_size)
         self.num_features_in_file = dict()
         for dirpath, dirnames, filenames in os.walk(self.source_dir):
@@ -82,9 +91,34 @@ class FimgerprintExtractor2():
             for filename in filenames:
                 if filename.endswith(".wav"):
                     filepath = os.path.join(dirpath, filename)
-                    _, peaks = find_peaks(filepath, analysis_type, sr, n_fft, hop_length, threshold)
-                    self.lsh.add(peaks, filepath)
-                    self.num_features_in_file[filepath] += 1
+                    audio, _ = librosa.load(filepath, sr=sr, mono=True)
+                    spect = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)
+                    for frame in spect:
+                        self.lsh.add(frame, filepath)
+                        self.num_features_in_file[filepath] += 1
 
 
     def query(self, filepath):
+        analysis_type = self.analysis_type
+        sr = self.sr
+        n_fft = self.n_fft
+        hop_length = self.hop_length
+        threshold = self.peak_threshold
+
+        audio, _ = librosa.load(filepath, sr=sr, mono=True)
+        spect = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)
+
+        results = list()
+        for frame in spect:
+            results.extend(self.lsh.query(frame))
+
+        counts = dict()
+        for r in results:
+            if r["label"] in counts:
+                counts[r["label"]] += 1
+            else:
+                counts[r["label"]] = 1
+        for k in counts:
+            counts[k] = float(counts[k]) / self.num_features_in_file[k]
+        return counts
+
