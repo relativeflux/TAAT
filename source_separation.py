@@ -76,7 +76,7 @@ V = V + 1e-10
 W, H, cost_function = source_separation(V, 2, beta=2, threshold=0.05, max_iter=2000)
 '''
 
-def source_separation2(filepath, sr=sr, n_fft=1024, hop_length=1024):
+def source_separation2(filepath, sr=16000, n_fft=1024, hop_length=1024):
     audio, _ = librosa.load(filepath, sr=sr, mono=True)
     D = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)
     D_harm, D_perc = librosa.decompose.hpss(D)
