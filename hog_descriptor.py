@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 def get_hog_descriptor(filepath, orientations=8, pixels_per_cell=(16,16), cells_per_block=(1,1)):
     img = skimage.io.imread(filepath)
     fd, hog = skimage.feature.hog(img,
-        orientations=8,
-        pixels_per_cell=(16, 16),
-        cells_per_block=(1, 1),
+        orientations=orientations,
+        pixels_per_cell=pixels_per_cell,
+        cells_per_block=cells_per_block,
         visualize=True,
         channel_axis=-1,
     )
