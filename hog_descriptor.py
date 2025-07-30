@@ -45,7 +45,7 @@ def spectrogram_to_hog_img(spect, sr):
     img = librosa.display.specshow(spect, y_axis='linear', x_axis='time', sr=sr, ax=ax)
     fig.canvas.draw()
     data = np.array(fig.canvas.renderer.buffer_rgba())
-    return data[:, :, 3]
+    return data[:, :, :3]
 
 def get_hog_descriptor_clusters(source_dir, sr=16000, n_fft=1024, hop_length=512):
     fd_list = []
@@ -55,8 +55,8 @@ def get_hog_descriptor_clusters(source_dir, sr=16000, n_fft=1024, hop_length=512
                 filepath = os.path.join(dirpath, filename)
                 audio, _ = librosa.load(filepath, sr=sr, mono=True)
                 spect = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)
-                spect = np.abs(spect)
-                img = spectrogram_to_hog_img(spect)
+                spect = librosa.amplitude_to_db(spect, ref=np.max)
+                img = spectrogram_to_hog_img(spect, sr)
                 _, fd, _ = get_hog_descriptor(img, orientations=8, pixels_per_cell=(16,16), cells_per_block=(1,1))
                 fd_list.append(fd)
     distance_matrix = get_distance_matrix(fd_list)
