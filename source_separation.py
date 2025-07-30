@@ -104,3 +104,35 @@ def plot_source_separation(D, D_harm, D_perc):
     ax[2].set(title='Percussive spectrogram')
     fig.colorbar(img, ax=ax)
     plt.show()
+
+def decompose_spectrum(filepath, sr=16000, n_fft=1024, hop_length=1024, n_comp=16):
+    y, _ = librosa.load(filepath, sr=sr, mono=True)
+    S = np.abs(librosa.stft(y, n_fft=n_fft, hop_length=hop_length))
+    comps, acts = librosa.decompose.decompose(S, n_components=n_comp)
+    # Plot...
+    layout = [list(".AAAA"), list("BCCCC"), list(".DDDD")]
+    fig, ax = plt.subplot_mosaic(layout, constrained_layout=True)
+    librosa.display.specshow(librosa.amplitude_to_db(S, ref=np.max),
+                            y_axis='log', x_axis='time', ax=ax['A'])
+    ax['A'].set(title='Input spectrogram')
+    ax['A'].label_outer()
+    librosa.display.specshow(librosa.amplitude_to_db(comps,
+                                                    ref=np.max),
+                            y_axis='log', ax=ax['B'])
+    ax['B'].set(title='Components')
+    ax['B'].label_outer()
+    ax['B'].sharey(ax['A'])
+    librosa.display.specshow(acts, x_axis='time', ax=ax['C'], cmap='gray_r')
+    ax['C'].set(ylabel='Components', title='Activations')
+    ax['C'].sharex(ax['A'])
+    ax['C'].label_outer()
+    S_approx = comps.dot(acts)
+    img = librosa.display.specshow(librosa.amplitude_to_db(S_approx,
+                                                        ref=np.max),
+                                y_axis='log', x_axis='time', ax=ax['D'])
+    ax['D'].set(title='Reconstructed spectrogram')
+    ax['D'].sharex(ax['A'])
+    ax['D'].sharey(ax['A'])
+    ax['D'].label_outer()
+    fig.colorbar(img, ax=list(ax.values()), format="%+2.f dB")
+    plt.show()
