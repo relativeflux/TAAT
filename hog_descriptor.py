@@ -1,6 +1,7 @@
 import os
 import numpy as np
-import scipy
+from scipy.spatial import distance
+from scipy.cluster.hierarchy import dendrogram, linkage
 import skimage
 import matplotlib.pyplot as plt
 import librosa
@@ -39,7 +40,7 @@ def get_distance_matrix(fd_list):
             fd_k = fd_list[k]
             # measure Jensen–Shannon distance between each feature vector
             # and add to the distance matrix
-            distance_matrix[i, k] = scipy.spatial.distance.jensenshannon(fd_i, fd_k)
+            distance_matrix[i, k] = distance.jensenshannon(fd_i, fd_k)
     # symmetrize the matrix as distance matrix is symmetric
     return np.maximum(distance_matrix, distance_matrix.transpose())
 
@@ -70,12 +71,12 @@ def get_hog_descriptor_clusters(source_dir, sr=16000, n_fft=1024, hop_length=512
                 )
                 fd_list.append(fd)
     distance_matrix = get_distance_matrix(fd_list)
-    cond_distance_matrix = scipy.spatial.distance.squareform(distance_matrix)
-    Z = scipy.cluster.hierarchy.linkage(cond_distance_matrix, method='ward')
+    cond_distance_matrix = distance.squareform(distance_matrix)
+    Z = linkage(cond_distance_matrix, method='ward')
     return Z
 
-'''
-plt.figure(figsize=(12, 6))
-dendrogram(Z, color_threshold=0.2, show_leaf_counts=True)
-plt.show()
-'''
+def plot_hog_descriptor_clusters(Z):
+    plt.figure(figsize=(12, 6))
+    dendrogram(Z, color_threshold=0.2, show_leaf_counts=True)
+    plt.show()
+
