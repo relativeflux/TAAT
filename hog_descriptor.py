@@ -1,6 +1,9 @@
+import os
+import numpy as np
 import scipy
 import skimage
 import matplotlib.pyplot as plt
+import librosa
 
 
 def get_hog_descriptor(filepath, orientations=8, pixels_per_cell=(16,16), cells_per_block=(1,1)):
@@ -27,42 +30,51 @@ def plot_hog_descriptor(orig_img, hog_img):
     plt.show()
 
 def get_distance_matrix(fd_list):
+    n = len(fd_list)
     # create an empty nxn distance matrix
-    distance_matrix = np.zeros(fd_list.shape)
-    for i in range(fd_list.shape[0]):
+    distance_matrix = np.zeros((n,n))
+    for i in range(n):
         fd_i = fd_list[i]
         for k in range(i):
             fd_k = fd_list[k]
             # measure Jensen–Shannon distance between each feature vector
             # and add to the distance matrix
-            distance_matrix[i, k] = distance.jensenshannon(fd_i, fd_k)
+            distance_matrix[i, k] = scipy.spatial.distance.jensenshannon(fd_i, fd_k)
     # symmetrize the matrix as distance matrix is symmetric
     return np.maximum(distance_matrix, distance_matrix.transpose())
 
-'''
 def spectrogram_to_hog_img(spect, sr):
     fig, ax = plt.subplots()
     img = librosa.display.specshow(spect, y_axis='linear', x_axis='time', sr=sr, ax=ax)
     fig.canvas.draw()
     data = np.array(fig.canvas.renderer.buffer_rgba())
+    plt.close()
     return data[:, :, :3]
 
-def get_hog_descriptor_clusters(source_dir, sr=16000, n_fft=1024, hop_length=512):
+def get_hog_descriptor_clusters(source_dir, sr=16000, n_fft=1024, hop_length=512, orientations=8, pixels_per_cell=(16,16), cells_per_block=(1,1)):
     fd_list = []
-    for dirpath, dirnames, filenames in os.walk(self.source_dir):
+    for dirpath, dirnames, filenames in os.walk(source_dir):
         for filename in filenames:
             if filename.endswith(".wav"):
                 filepath = os.path.join(dirpath, filename)
                 audio, _ = librosa.load(filepath, sr=sr, mono=True)
                 spect = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)
-                spect = librosa.amplitude_to_db(spect, ref=np.max)
+                spect = librosa.amplitude_to_db(np.abs(spect), ref=np.max)
                 img = spectrogram_to_hog_img(spect, sr)
-                _, fd, _ = get_hog_descriptor(img, orientations=8, pixels_per_cell=(16,16), cells_per_block=(1,1))
+                fd, _ = skimage.feature.hog(img,
+                    orientations=orientations,
+                    pixels_per_cell=pixels_per_cell,
+                    cells_per_block=cells_per_block,
+                    visualize=True,
+                    channel_axis=-1,
+                )
                 fd_list.append(fd)
     distance_matrix = get_distance_matrix(fd_list)
     cond_distance_matrix = scipy.spatial.distance.squareform(distance_matrix)
     Z = scipy.cluster.hierarchy.linkage(cond_distance_matrix, method='ward')
+    return Z
 
+'''
 plt.figure(figsize=(12, 6))
 dendrogram(Z, color_threshold=0.2, show_leaf_counts=True)
 plt.show()
