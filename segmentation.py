@@ -100,10 +100,14 @@ def plot_novelty_segmentation(save_to, S, seg, Fs_X):
     fig, ax, line = plot_signal(seg, Fs=Fs_X, color='k')
     plt.savefig(os.path.join(save_to, "nov-seg.png"))
     
-def plot_novelty_segmentation2(S, seg, Fs_X):
+def plot_novelty_segmentation2(S, seg, Fs_X, show_ticks=True):
     plt.set_cmap("gray")
     plt.imshow(S, interpolation="none")
-    fig, ax, line = plot_signal(seg, Fs=Fs_X, color='k')
+    if not show_ticks:
+        plt.xticks([])
+        plt.yticks([])
+    #plt.tight_layout(pad=0)
+    #fig, ax, line = plot_signal(seg, Fs=Fs_X, color='k')
     plt.show()
 
 '''
@@ -136,7 +140,7 @@ from ssm import compute_novelty_ssm
 from segmentation import get_mfcc_ssm, plot_novelty_segmentation2
 file_path = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 1/data/001 End of the World (op.1).wav'
 x, sr = librosa.load(file_path, sr=22050, mono=True)
-MFCC_S, Fs_X = get_mfcc_ssm(x)
+MFCC_S, Fs_X = get_mfcc_ssm(x)MFCC_S, Fs_X = get_mfcc_ssm(x)
 seg = compute_novelty_ssm(MFCC_S, kernel=None, L=20, var=0.5, exclude=False)
 plot_novelty_segmentation2(MFCC_S, seg, Fs_X)
 '''

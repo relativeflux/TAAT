@@ -5,6 +5,9 @@ import numpy as np
 import sqlite3
 from peak_extraction import *
 from LSH import *
+import librosa
+import soundfile as sf
+from matplotlib import pyplot as plt
 
 
 # Adapted from Olaf/src/olaf_fp_extractor.c
@@ -206,7 +209,7 @@ C = ['Who', 'was', 'the', 'last', 'pharaoh', 'of', 'Egypt']
 '''
 
 
-def jacard(a, b):
+def jaccard(a, b):
     a = set(a)
     b = set(b)
     intersection = a.intersection(b)
@@ -258,7 +261,7 @@ def pickRandomCoeffs(k):
     
   return randList
 
-class FingerprintExtractor:
+class FingerprintExtractorORIGINAL:
 
     def __init__(self, source_dir, analysis_type="melspectrogram", numHashes=10, sr=16000, n_fft=1024, hop_length=1024, peak_threshold=2.75):
 
@@ -401,31 +404,23 @@ class FingerprintExtractor:
         return [[self.docNames[a], self.docNames[b]] \
             for (a,b) in candidate_pairs]
 
-#####################################################################################
-#####################################################################################
-#####################################################################################
+#################################################################################
+#################################################################################
+#################################################################################
 
-from scipy.spatial import distance
-from scipy.cluster.hierarchy import dendrogram, linkage
-import skimage
-import librosa
+class FingerprintExtractor:
 
-from hog_descriptor import spectrogram_to_hog_img
-
-class FPExtractorFromHOGDescriptors:
-
-    def __init__(self, source_dir, analysis_type="melspectrogram", numHashes=10, sr=16000, n_fft=1024, hop_length=512, orientations=6, pixels_per_cell=(16,16), cells_per_block=(1,1)):
+    def __init__(self, source_dir, analysis_type="melspectrogram", numHashes=10, sr=16000, n_fft=1024, hop_length=1024, peak_threshold=2.75, time_interval_max=5):
 
         self.source_dir = source_dir
         self.analysis_type = analysis_type
         self.sr = sr
         self.n_fft = n_fft
         self.hop_length = hop_length
-        self.orientations = orientations
-        self.pixels_per_cell = pixels_per_cell
-        self.cells_per_block = cells_per_block
+        self.peak_threshold = peak_threshold
 
         self.numHashes = numHashes
+        self.time_interval_max = time_interval_max
 
         self.docNames = []
 
@@ -435,47 +430,52 @@ class FPExtractorFromHOGDescriptors:
         self.coeffA = pickRandomCoeffs(self.numHashes)
         self.coeffB = pickRandomCoeffs(self.numHashes)
 
+    '''
+    def extract_fingerprints_for_file(self, filepath):
+        with open(filepath) as f:
+            words = f.readline().split(" ")
+            shinglesInDoc = set()
+            for i in range(0, len(words) - 2):
+                shingle = (words[i] + " " + words[i + 1] + " " + words[i + 2]).encode("ascii")
+                crc = binascii.crc32(shingle) & 0xffffffff
+                shinglesInDoc.add(crc)
+        return shinglesInDoc
+    '''
+
     def extract_fingerprints_for_file(self, filepath):
 
         analysis_type = self.analysis_type
         sr = self.sr
         n_fft = self.n_fft
         hop_length = self.hop_length
-        orientations = self.orientations
-        pixels_per_cell = self.pixels_per_cell
-        cells_per_block = self.cells_per_block
+        threshold = self.peak_threshold
 
-        print(f"Processing HOG descriptors for {filepath}")
-        audio, _ = librosa.load(filepath, sr=sr, mono=True)
-        spect = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)
-        spect = librosa.amplitude_to_db(np.abs(spect), ref=np.max)
-        img = spectrogram_to_hog_img(spect, sr)
-        fd, _ = skimage.feature.hog(img,
-            orientations=orientations,
-            pixels_per_cell=pixels_per_cell,
-            cells_per_block=cells_per_block,
-            visualize=True,
-            channel_axis=-1,
-        )
-
-        fd = fd.reshape(-1, orientations)
+        _, peaks = find_peaks(filepath, analysis_type, sr, n_fft, hop_length, threshold)
+        peaks = sorted(peaks)
 
         fingerprints = set()
 
-        print(f"Processing fingerprints for {filepath}")
-        for i in range(len(fd) - 3):
-            chunk = fd[i:i+2]
-            [[o1, o2, o3, o4, o5, o6], [oo1, oo2, oo3, oo4, oo5, oo6]] = chunk
-        #for i in range(len(fd) - orientations+1):
-            #chunk = fd[i:i+orientations]FPExtractorFromHOGDescriptors
-            #[o1, o2, o3, o4, o5, o6] = chunk
+        '''
+        for i in range(len(peaks) - 3):
+            chunk = peaks[i:i+2]
+            [[t1, f1, m1], [t2, f2, m2]] = chunk
 
-            d = f"{np.mean([o1, o2, o3, o4, o5, o6])} {np.mean([oo1, oo2, oo3, oo4, oo5, oo6])}".encode("ascii")
-            d = binascii.crc32(d) & 0xffffffff
+            #d = { 't1': t1, 't2': t2, 'f1': f1, 'f2': f2, 'm1': m1, 'm2': m2 }
+            #d = json.dumps(d).encode("ascii")
+            
+            #d = f"{t1} {f1} {m1} {t2} {f2} {m2}".encode("ascii")
+            #d = binascii.crc32(d) & 0xffffffff
 
-            #d = 1 + np.mean([o1, o2, o3, o4, o5]) + np.mean([oo1, oo2, oo3, oo4, oo5]) * (2 ** 8) + abs(oo6-o6) * (2 ** 16)
+            d = 1 + f2 + f1 * (2 ** 8) + abs(t2-t1) * (2 ** 16)
 
             fingerprints.add(d)
+        '''
+
+        for i, anchor in enumerate(peaks):
+            for target in peaks[i + 1:]:
+                if target[0] > anchor[0] and target[0] - anchor[0] < self.time_interval_max:
+                    h = (anchor[1] << 22) | (target[1] << 12) | (target[0] - anchor[0])
+                    fingerprints.add((h, anchor[0], target[0]))
         return fingerprints
 
     def extract_fingerprints(self):
@@ -494,17 +494,19 @@ class FPExtractorFromHOGDescriptors:
         for i in range(0, self.numHashes):
             
             minHashCode = nextPrime + 1
-            
+            fp_idx = 0
+
             # For each shingle in the document...
-            for shingleID in shingleIDSet:
-                h = hashcode(shingleID, a[i], b[i], nextPrime)
+            for (j, shingleID) in enumerate(shingleIDSet):
+                h = hashcode(shingleID[0], a[i], b[i], nextPrime)
                 
                 # Track the lowest hash code seen.
                 if h < minHashCode:
                     minHashCode = h
+                    fp_idx = j
 
             # Add the smallest hash code value as component number 'i' of the signature.
-            signature.append(minHashCode)
+            signature.append((minHashCode, fp_idx))
         return signature
 
     def generate_minhash_sigs(self):
@@ -526,7 +528,7 @@ class FPExtractorFromHOGDescriptors:
         self.extract_fingerprints()
         self.generate_minhash_sigs()
 
-    def query(self, filepath):
+    def query(self, filepath, verbose=True, no_identity_match=True):
         fingerprints = self.extract_fingerprints_for_file(filepath)
 
         a = self.coeffA
@@ -534,21 +536,94 @@ class FPExtractorFromHOGDescriptors:
 
         query_sig = self.get_minhash_signature(fingerprints, a, b)
 
-        matches = {}
+        matches = {} #[]
 
+        '''
         for i in range(0, len(self.docNames)):
             ref_sig = self.signatures[i]
             count = 0
             # Count the number of positions in the signatures which are equal...
             for k in range(0, self.numHashes):
                 if len(ref_sig) >= self.numHashes:
-                    count = count + (ref_sig[k] == query_sig[k])
+                    count = count + (ref_sig[k][0] == query_sig[k][0])
                 res = count / self.numHashes
             if res > 0:
                 matches[self.docNames[i]] = res
+        '''
+        '''
+        for i in range(0, len(self.docNames)):
+            ref_sig = self.signatures[i]
+            count = 0
+            # Count the number of positions in the signatures which are equal...
+            for k in range(0, self.numHashes):
+                if len(ref_sig) >= self.numHashes:
+                    file = self.docNames[i]
+                    is_match = (ref_sig[k][0] == query_sig[k][0])
+                    if is_match and os.path.basename(file) != os.path.basename(filepath):
+                        fp = list(self.fingerprints[file])
+                        matchID, ref_start, ref_stop = self.get_fingerprint_info(fp, ref_sig[k])
+                        _, query_start, query_stop = self.get_fingerprint_info(list(fingerprints), query_sig[k])
+                        matches.append({
+                            'matchCount': 0,
+                            'path': file,
+                            'matchIdentifier': matchID, #ref_sig[k][0], #fp[hash_idx][0]
+                            'queryStart': query_start,
+                            'queryStop': query_stop,
+                            'referenceStart': ref_start,
+                            'referenceStop': ref_stop
+                        })
+                    count = count + is_match
+        '''
+        for i in range(0, len(self.docNames)):
+            ref_sig = self.signatures[i]
+            count = 0
+            # Count the number of positions in the signatures which are equal...
+            for k in range(0, self.numHashes):
+                if len(ref_sig) >= self.numHashes:
+                    file = self.docNames[i]
+                    is_match = (ref_sig[k][0] == query_sig[k][0])
+                    if is_match and no_identity_match==True and os.path.basename(file) != os.path.basename(filepath):
+                        fp = list(self.fingerprints[file])
+                        matchID, ref_start, ref_stop = self.get_fingerprint_info(fp, ref_sig[k], n_fft=self.n_fft, hop_length=self.n_fft)
+                        _, query_start, query_stop = self.get_fingerprint_info(list(fingerprints), query_sig[k], n_fft=self.n_fft, hop_length=self.n_fft)
+                        match = {
+                            #'path': file,
+                            'matchIdentifier': matchID, #ref_sig[k][0], #fp[hash_idx][0]
+                            'queryStart': query_start,
+                            'queryStop': query_stop,
+                            'referenceStart': ref_start,
+                            'referenceStop': ref_stop
+                        }
+                        if file not in matches:
+                            matches[file] = [match]
+                        else:
+                            matches[file].append(match)
 
-        return matches
+        if verbose:
+            return matches
+        else:
+            return parse_query_output(matches)
 
+    def get_fingerprint_info(self, fingerprint, signature, n_fft, hop_length):
+        [id, idx] = signature
+        start_time = fingerprint[idx][1]
+        start_time = librosa.frames_to_time(start_time, n_fft=n_fft, hop_length=hop_length)
+        stop_time = fingerprint[idx][2]
+        stop_time = librosa.frames_to_time(stop_time, n_fft=n_fft, hop_length=hop_length)
+        return id, float(start_time), float(stop_time)
+
+    def parse_query_output(self, query_output):
+        result = {}
+        keys = list(query_output.keys())
+        for (i, v) in enumerate(list(query_output.values())):
+            k = keys[i]
+            result[f"file{i}"] = k
+            segments = []
+            for match in v:
+                segments.append([match["queryStart"],match["queryStop"]])
+                segments.append([match["referenceStart"],match["referenceStop"]])
+            result[f"file{i}-segments"] = segments
+        return result
 
     def lsh(self, b):
         lsh = LSH(b)
@@ -557,3 +632,29 @@ class FPExtractorFromHOGDescriptors:
         candidate_pairs = lsh.check_candidates()
         return [[self.docNames[a], self.docNames[b]] \
             for (a,b) in candidate_pairs]
+
+def write_match_file(outdir, file_path, filename_prefix, start, end, sr):
+    seg, _ = librosa.load(file_path, sr=sr, mono=True, offset=start, duration=end-start)
+    filename = f"{filename_prefix}.start={start}_end={end}.wav"
+    sf.write(os.path.join(outdir, filename), seg, sr)
+
+def make_dir_for_file_path(parent_dir, file_path):
+    file_path_dir = os.path.splitext(os.path.basename(file_path))[0]
+    file_path_dir = ''.join(['_' if char == ' ' else char for char in file_path_dir])
+    file_path_dir = os.path.join(parent_dir, file_path_dir)
+    if not os.path.exists(file_path_dir):
+        os.makedirs(file_path_dir)
+    return file_path_dir
+
+def write_match_files(outdir, query_path, matches, sr=22050):
+    matches_dir = make_dir_for_file_path(outdir, query_path)
+    keys = list(matches.keys())
+    for (idx, match_group) in enumerate(matches.values()):
+        #match_path = str(match_group[0]['path'], encoding="utf-8")
+        match_path = keys[idx]
+        match_group_dir = make_dir_for_file_path(matches_dir, match_path)
+        for (i, match) in enumerate(match_group):
+            write_match_file(match_group_dir, query_path, f"query_{i}", match["queryStart"], match["queryStop"], sr)
+            write_match_file(match_group_dir, match_path, f"ref_{i}", match["referenceStart"], match["referenceStop"], sr)
+
+

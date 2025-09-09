@@ -19,6 +19,9 @@ def get_hog_descriptor(filepath, orientations=8, pixels_per_cell=(16,16), cells_
     )
     return img, fd, hog
 
+def save_hog_descriptor(filepath, hog):
+    skimage.io.imsave(filepath, (255 * hog).astype(np.uint8))
+
 def plot_hog_descriptor(orig_img, hog_img):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4), sharex=True, sharey=True)
     ax1.axis('off')

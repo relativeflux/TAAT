@@ -25,8 +25,10 @@ def find_peaks(filepath, analysis_type="stft", sr=16000, n_fft=2048, hop_length=
     if analysis_type=="stft":
         spect = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)
         spect = np.abs(spect)
-    else:
+    elif analysis_type=="melspectrogram":
         spect = librosa.feature.melspectrogram(y=audio, sr=sr, n_fft=n_fft, hop_length=hop_length)
+    else:
+        spect = librosa.cqt(audio, sr=sr, hop_length=hop_length)
     spect = librosa.amplitude_to_db(spect, ref=np.max)
     # Remove zero values.
     flattened = np.matrix.flatten(spect)
