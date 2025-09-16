@@ -20,3 +20,5 @@ pip-selfcheck.json
 *.log
 *.ipynb
 *.so
+*.json
+*.png

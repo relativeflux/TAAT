@@ -100,8 +100,14 @@ class Waveprint:
         print(f"Computing Wavelet representation for {filepath}")
         audio, _ = librosa.load(filepath, sr=sr, mono=True)
         audio = butter_bandpass_filter(audio, lowcut=180, highcut=3000, fs=sr)
-        spect = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)
-        #spect = librosa.cqt(audio, sr=sr, hop_length=hop_length)
+        spect = False
+        if analysis_type=="stft":
+            spect = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)
+            spect = np.abs(spect)
+        elif analysis_type=="melspectrogram":
+            spect = librosa.feature.melspectrogram(y=audio, sr=sr, n_fft=n_fft, hop_length=hop_length)
+        else:
+            spect = librosa.cqt(audio, sr=sr, hop_length=hop_length)
         spect = librosa.amplitude_to_db(np.abs(spect), ref=np.max)
         img_data = spectrogram_to_img_data(spect, sr)
         #MFCC_S, _ = get_mfcc_ssm(audio)
@@ -112,31 +118,12 @@ class Waveprint:
         haar_images = standardize_haar(haar_images)
         bv = binarize_vectors_topK_sign(haar_images, self.k)
         b = np.packbits(bv)
-        for bits in b:
-            fingerprints.add(int(bits))
-
-        '''
-        idx = np.argsort(coeffs)[-self.k:]
-        bv = np.zeros([len(coeffs)], dtype=bool)
-        bv[idx] = coeffs[idx] > 0
-        bv = bv.reshape(-1, 3)
-        bv = bv.astype(int).astype(str)
-
-        fingerprints = set()
-
         print(f"Processing fingerprints for {filepath}")
-        for i in range(len(bv) - 3):
-            chunk = bv[i:i+2]
-            binarized = ["".join(bin) for bin in chunk]
-            binarized = [binascii.crc32(bin.encode("ascii")) for bin in binarized]
-            a, b = binarized
-            fingerprints.add(a | b)
-            #chunk = fd[i:i+2]
-            #[a, b] = chunk
-            #binarized = [(1 if elt > b[i] else 0) for (i, elt) in enumerate(a)]
-            #binarized = int(np.packbits(binarized)[0])
-            #fingerprints.add(binarized)
-        '''
+        for i in range(0, len(b) - 3):
+            d = f"{b[i]} {b[i+1]} {b[i+2]}".encode("ascii")
+            h = binascii.crc32(d) & 0xffffffff
+            fingerprints.add(h)
+
         return fingerprints
 
     def extract_fingerprints(self):

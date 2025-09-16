@@ -86,6 +86,9 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
     b, a = signal.butter(order, [low, high], btype='band')
     return signal.lfilter(b, a, data)
 
+def stft(y, sr=22050, fft_size=2048, hop_length=2048):
+    return librosa.stft(y, n_fft=fft_size, hop_length=hop_length)
+
 def chroma_cqt(y, sr=22050, fft_size=2048, hop_length=2048):
     return librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=hop_length)
 
@@ -218,19 +221,19 @@ def get_xsim_multi(y_comp, y_ref, sr=22050, feature="chroma_cqt", fft_size=2048,
         rqa = librosa.sequence.rqa(xsim_copy, gap_onset=gap_onset, gap_extend=gap_extend, knight_moves=knight_moves)
         paths.append(rqa[1])
         k += 1
-    return xsim_orig, rqa_orig[0], paths
-
-'''
-def plot_xsim_multi(xsim, rqa, paths):
-    fig, ax = plt.subplots(ncols=2, sharex=True, sharey=True)
-    librosa.display.specshow(xsim, x_axis='frames', y_axis='frames', ax=ax[0])
-    ax[0].set(title='Cross-similarity matrix')
-    librosa.display.specshow(rqa, x_axis='frames', y_axis='frames', ax=ax[1])
-    ax[1].set(title='Alignment score matrix')
-    col = collections.LineCollection(paths, colors='c')
-    ax[1].add_collection(col)
-    plt.show(block=False)
-'''
+    info = {
+        "sample_rate": sr,
+        "feature": feature,
+        "fft_size": fft_size,
+        "hop_length": hop_length,
+        "k": k,
+        "metric": metric,
+        "num_paths": num_paths,
+        "gap_onset": gap_onset,
+        "gap_extend": gap_extend,
+        "knight_moves": knight_moves
+    }
+    return xsim_orig, rqa_orig[0], paths, info
 
 def onpick(event):
     thisline = event.artist
@@ -248,7 +251,7 @@ def plot_xsim_multi(xsim, rqa, paths):
     ax[1].set(title='Alignment score matrix')
     for path in paths:
         ax[1].plot(path[:, 1], path[:, 0], color='c', picker=True)
-    fig.canvas.mpl_connect('pick_event', onpick)
+    #fig.canvas.mpl_connect('pick_event', onpick)
     plt.show(block=False)
 
 def get_xsim_start_end_times2(score, plot, y_ref, y_comp, sr):
@@ -271,49 +274,19 @@ def get_xsim_start_end_times2(score, plot, y_ref, y_comp, sr):
             np.round(librosa.samples_to_time(start2_sample), 2),
             np.round(librosa.samples_to_time(end2_sample), 2)]
 
-'''
-def write_path_files(outdir, score, paths, y_ref_path, y_comp_path, sr):
-    y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
-    y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
-    p = [get_xsim_start_end_times2(score, path, y_ref, y_comp, sr) for path in paths]
-    i = 0
-    for start_end_pair in p:
-        start1, end1, start2, end2 = start_end_pair
-        y_ref_seg, _ = librosa.load(y_ref_path, sr=sr, mono=True, offset=start1, duration=end1-start1)
-        y_comp_seg, _ = librosa.load(y_comp_path, sr=sr, mono=True, offset=start2, duration=end2-start2)
-        filename1 = f"y_ref.start={start1}_dur={end1-start1}.wav"
-        filename2 = f"y_comp.start={start2}_dur={end2-start2}.wav"
-        i += 1
-        sf.write(os.path.join(outdir, filename1), y_ref_seg, sr)
-        sf.write(os.path.join(outdir, filename2), y_comp_seg, sr)
-
-def write_path_file(outdir, file_path, filename_prefix, start, end, sr):
-    seg, _ = librosa.load(file_path, sr=sr, mono=True, offset=start, duration=end-start)
-    filename = f"{filename_prefix}.start={start}_end={end}"
-    filename = os.path.join(outdir, f"{filename}")
-    i = 1
-    while os.path.exists(f"{filename}.wav"):
-        filename = f"{filename}_({i})"
-        i += 1
-    sf.write(f"{filename}.wav", seg, sr)
-
-def write_path_file2(outdir, file_path, filename_prefix, start, end, sr):
-    seg, _ = librosa.load(file_path, sr=sr, mono=True, offset=start, duration=end-start)
-    filename = f"{filename_prefix}.start={start}_end={end}"
-    path = outdir + "/%s%s" % (filename, ".wav")
-    i = 1
-    while os.path.exists(path):
-        path = outdir + "%s_%d%s" % (filename, i, ".wav")
-        i += 1
-    sf.write(path, seg, sr)
-'''
-
 def write_path_file(outdir, file_path, filename_prefix, start, end, sr):
     seg, _ = librosa.load(file_path, sr=sr, mono=True, offset=start, duration=end-start)
     filename = f"{filename_prefix}.start={start}_end={end}.wav"
     sf.write(os.path.join(outdir, filename), seg, sr)
 
-def write_path_files(outdir, score, paths, y_ref_path, y_comp_path, sr):
+def write_path_files(outdir, score, paths, y_ref_path, y_comp_path, sr, info):
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+    if info:
+        info["y_ref_file"] = y_ref_path,
+        info["y_comp_file"] = y_comp_path,
+        with open(os.path.join(outdir, "info.json"), "w") as f:
+            json.dump(info, f, indent=4)
     y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
     y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
     p = [get_xsim_start_end_times2(score, path, y_ref, y_comp, sr) for path in paths]
