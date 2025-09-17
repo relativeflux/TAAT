@@ -182,15 +182,11 @@ def plot_xsim(xsim, rqa, start1, end1, start2, end2):
 
 '''
 import librosa
-from cross_similarity import get_xsim, plot_xsim
-file_path1 = '../Dropbox/Miscellaneous/TAAT/Data/sg-audio-datasets/02 c-in your image.wav'
-file_path2 = '../Dropbox/Miscellaneous/TAAT/Data/sg-audio-datasets/02 i-no fish.wav'
-y_ref, sr = librosa.load(file_path1, sr=22050, mono=True)
-y_comp, sr = librosa.load(file_path2, sr=22050, mono=True)
+from cross_similarity import get_xsim_multi, plot_xsim_multi, write_path_files
+filepath1 = '../Dropbox/Miscellaneous/TAAT/Data/sg-audio-datasets/02 c-in your image.wav'
+filepath2 = '../Dropbox/Miscellaneous/TAAT/Data/sg-audio-datasets/02 i-no fish.wav'
 
-a, b = get_xsim(y_comp, y_ref, feature='melspectrogram', fft_size=8256, mode='affinity', k=5, metric='cosine')
-
-a, b = get_xsim(y_comp, y_ref, feature='melspectrogram', fft_size=8192, hop_length=8192, mode='affinity', k=20, metric='cosine', gap_onset=5, gap_extend=10, knight_moves=True)
+xsim, rqa, paths, info = get_xsim_multi(filepath1, filepath2, feature='melspectrogram', fft_size=8192, hop_length=8192, k=20, metric='cosine', gap_onset=5, gap_extend=10, knight_moves=True, num_paths=10)
 
 file_path3 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 4/data/003 Chord composition V (op.8).wav'
 file_path4 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 4/input/023 Daguerreo types, Op. 32B.wav'
@@ -204,7 +200,9 @@ import soundfile as sf
 import os
 import json
 
-def get_xsim_multi(y_comp, y_ref, sr=22050, feature="chroma_cqt", fft_size=2048, hop_length=2048, k=2, metric='euclidean', mode='affinity', gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5):
+def get_xsim_multi(y_comp_path, y_ref_path, sr=22050, feature="chroma_cqt", fft_size=2048, hop_length=2048, k=2, metric='euclidean', mode='affinity', gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5):
+    y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
+    y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
     ref = args[feature](y_ref, sr=sr, fft_size=fft_size, hop_length=hop_length)
     comp = args[feature](y_comp, sr=sr, fft_size=fft_size, hop_length=hop_length)
     x_ref = librosa.feature.stack_memory(ref, n_steps=10, delay=3)
