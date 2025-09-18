@@ -92,14 +92,13 @@ def plot_peaks(spect, peaks, peaks_only=False, figsize=[16,8], s=1.5, color="red
 
 def parse_peaks(peaks, n_fft=2048, hop_length=1024):
     peaks = np.array(sorted(peaks))
-    num_samples = librosa.frames_to_samples(peaks[-1][0], n_fft=n_fft, hop_length=hop_length)
-    result = np.zeros(num_samples+1)
     frames = librosa.frames_to_samples(peaks[:,0], n_fft=n_fft, hop_length=hop_length)
+    num_samples = frames[-1]
+    result = np.zeros(num_samples+1)
     amps = peaks[:,2]
     for (i, f) in enumerate(frames):
         result[f] = amps[i]
     return result
-
 
 def get_peaks_xsim(comp_path, ref_path, analysis_type="melspectrogram", sr=16000, n_fft=2048, hop_length=1024, peak_threshold=2.75, k=2, metric='euclidean', mode='affinity'):
     ref_spect, ref_peaks = find_peaks(ref_path, analysis_type, sr, n_fft, hop_length, peak_threshold)
