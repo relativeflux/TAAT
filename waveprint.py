@@ -15,7 +15,10 @@ from cross_similarity import butter_bandpass_filter
 
 def spectrogram_to_img_data(spect, sr):
     fig, ax = plt.subplots()
-    img = librosa.display.specshow(spect, y_axis='linear', x_axis='time', sr=sr, ax=ax)
+    img = librosa.display.specshow(spect, sr=sr, ax=ax)
+    plt.xticks([])
+    plt.yticks([])
+    plt.tight_layout(pad=0)
     fig.canvas.draw()
     data = np.array(fig.canvas.renderer.buffer_rgba())
     plt.close()
