@@ -64,7 +64,7 @@ class XSIMFingerprintExtractor():
         samples2, _ = librosa.load(filepath2, sr=sr, mono=True)
         xsim, _ = get_xsim(samples1, samples2, feature="melspectrogram", fft_size=n_fft, hop_length=hop_length, k=k, metric=metric, mode=mode)
         xsim_data = get_xsim_img_data(xsim, sr)
-        skimage.io.imsave(f"./imgs/{os.path.basename(filepath1)}.png", xsim_data)
+        #skimage.io.imsave(f"./imgs/{os.path.basename(filepath1)}.png", xsim_data)
         #xsim_data = trim_value(xsim_data, value=255)
         img = skimage.color.rgb2gray(xsim_data)
         thresh = skimage.filters.threshold_otsu(img)
