@@ -602,7 +602,7 @@ class FingerprintExtractor:
         if verbose:
             return matches
         else:
-            return parse_query_output(matches)
+            return self.parse_query_output(filepath, matches)
 
     def get_fingerprint_info(self, fingerprint, signature, n_fft, hop_length):
         [id, idx] = signature
@@ -612,6 +612,7 @@ class FingerprintExtractor:
         stop_time = librosa.frames_to_time(stop_time, n_fft=n_fft, hop_length=hop_length)
         return id, float(start_time), float(stop_time)
 
+    '''
     def parse_query_output(self, query_output):
         result = {}
         keys = list(query_output.keys())
@@ -623,6 +624,22 @@ class FingerprintExtractor:
                 segments.append([match["queryStart"],match["queryStop"]])
                 segments.append([match["referenceStart"],match["referenceStop"]])
             result[f"file{i}-segments"] = segments
+        return result
+    '''
+
+    def parse_query_output(self, query_file_path, query_output):
+        result = {}
+        keys = list(query_output.keys())
+        for (i, v) in enumerate(list(query_output.values())):
+            k = keys[i]
+            result[f"results_{i}"] = {
+                "query_file": os.path.basename(query_file_path),
+                "query_segments": [[match["queryStart"], match["queryStop"]] for match in v],
+                "reference_file": os.path.basename(k),
+                "reference_segments": [[match["referenceStart"], match["referenceStop"]] for match in v]
+            }
+            
+            
         return result
 
     def lsh(self, b):
