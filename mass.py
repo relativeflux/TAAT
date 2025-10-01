@@ -45,4 +45,27 @@ def plot_matches(ts, query, matches):
     plt.legend()
     plt.show()
 
+def get_motifs(ts_filepath, query_filepath, sr=16000, n_fft=1024, hop_length=1024, m=500, channel=16):
+    ts, _ = librosa.load(ts_filepath, sr=sr, mono=True)
+    query, _ = librosa.load(query_filepath, sr=sr, mono=True)
+    ts = ts.astype(np.float64)
+    query = query.astype(np.float64)
+    ts_mfcc = librosa.feature.mfcc(y=ts, sr=sr, n_fft=n_fft, hop_length=hop_length)[channel]
+    query_mfcc = librosa.feature.mfcc(y=query, sr=sr, n_fft=n_fft, hop_length=hop_length)[channel]
+    return stumpy.stump(T_A = ts_mfcc, m = m, T_B = query_mfcc, ignore_trivial = False)
+
+def plot_best_motif_match(ts_mfcc, query_mfcc, motifs, m):
+    best_motif_index = motifs[:, 0].argmin()
+    ts_z_norm_motif = stumpy.core.z_norm(ts_mfcc[best_motif_index : best_motif_index + m])
+    query_motif_index = motifs[best_motif_index, 1]
+    query_z_norm_motif = stumpy.core.z_norm(query_mfcc[query_motif_index:query_motif_index+m])
+    plt.plot(ts_z_norm_motif, label='ts')
+    plt.plot(query_z_norm_motif, label='query')
+    plt.xlabel('Time')
+    plt.ylabel('Frequency')
+    plt.legend()
+    plt.show()
+
+
+
         

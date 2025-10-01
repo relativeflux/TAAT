@@ -87,13 +87,16 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
     return signal.lfilter(b, a, data)
 
 def stft(y, sr=22050, fft_size=2048, hop_length=2048):
-    return librosa.stft(y, n_fft=fft_size, hop_length=hop_length)
+    spect = librosa.stft(y, n_fft=fft_size, hop_length=hop_length)
+    return librosa.amplitude_to_db(np.abs(spect), ref=np.max)
 
-def chroma_cqt(y, sr=22050, fft_size=2048, hop_length=2048):
-    return librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=hop_length)
+def cqt(y, sr=22050, fft_size=2048, hop_length=2048):
+    spect = librosa.cqt(y, sr=sr, hop_length=hop_length)
+    return librosa.amplitude_to_db(spect, ref=np.max)
 
 def melspectrogram(y, sr=22050, fft_size=2048, hop_length=2048):
-    return librosa.feature.melspectrogram(y=y, sr=sr, n_fft=fft_size, hop_length=hop_length)
+    mel_spect = librosa.feature.melspectrogram(y=y, sr=sr, n_fft=fft_size, hop_length=hop_length)
+    return librosa.amplitude_to_db(mel_spect, ref=np.max)
 
 def mfcc(y, sr=22050, fft_size=2048, hop_length=2048):
     return librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13, hop_length=hop_length)
@@ -199,12 +202,16 @@ from matplotlib import collections
 import soundfile as sf
 import os
 import json
+import stumpy
 
-def get_xsim_multi(y_comp_path, y_ref_path, sr=22050, feature="chroma_cqt", fft_size=2048, hop_length=2048, k=2, metric='euclidean', mode='affinity', gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5):
+def get_xsim_multi(y_comp_path, y_ref_path, sr=22050, feature="melspectrogram", fft_size=2048, hop_length=2048, k=2, metric='euclidean', mode='affinity', gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5, norm=False):
     y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
     y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
     ref = args[feature](y_ref, sr=sr, fft_size=fft_size, hop_length=hop_length)
     comp = args[feature](y_comp, sr=sr, fft_size=fft_size, hop_length=hop_length)
+    if norm:
+        ref = stumpy.core.z_norm(ref)
+        comp = stumpy.core.z_norm(comp)
     x_ref = librosa.feature.stack_memory(ref, n_steps=10, delay=3)
     x_comp = librosa.feature.stack_memory(comp, n_steps=10, delay=3)
     xsim_orig = librosa.segment.cross_similarity(x_comp, x_ref, k=k, metric=metric, mode=mode)
