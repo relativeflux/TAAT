@@ -115,7 +115,7 @@ def spectral_flatness(y, sr=22050, fft_size=2048, hop_length=2048):
 
 args = locals()
 
-def get_xsim(y_comp, y_ref, sr=22050, feature="chroma_cqt", fft_size=2048, hop_length=2048, k=2, metric='euclidean', mode='affinity', gap_onset=np.inf, gap_extend=np.inf, knight_moves=False):
+def get_xsim(y_comp, y_ref, sr=22050, feature="melspectrogram", fft_size=2048, hop_length=2048, k=2, metric='euclidean', mode='affinity', gap_onset=np.inf, gap_extend=np.inf, knight_moves=False):
     ref = args[feature](y_ref, sr=sr, fft_size=fft_size, hop_length=hop_length)
     comp = args[feature](y_comp, sr=sr, fft_size=fft_size, hop_length=hop_length)
     x_ref = librosa.feature.stack_memory(ref, n_steps=10, delay=3)
