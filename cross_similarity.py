@@ -92,7 +92,7 @@ def stft(y, sr=22050, fft_size=2048, hop_length=2048):
 
 def cqt(y, sr=22050, fft_size=2048, hop_length=2048):
     spect = librosa.cqt(y, sr=sr, hop_length=hop_length)
-    return librosa.amplitude_to_db(spect, ref=np.max)
+    return librosa.amplitude_to_db(np.abs(spect), ref=np.max)
 
 def melspectrogram(y, sr=22050, fft_size=2048, hop_length=2048):
     mel_spect = librosa.feature.melspectrogram(y=y, sr=sr, n_fft=fft_size, hop_length=hop_length)
