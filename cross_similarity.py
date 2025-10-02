@@ -204,7 +204,7 @@ import os
 import json
 import stumpy
 
-def get_xsim_multi(y_comp_path, y_ref_path, sr=22050, feature="melspectrogram", fft_size=2048, hop_length=2048, k=2, metric='euclidean', mode='affinity', gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5, norm=False):
+def get_xsim_multi(y_comp_path, y_ref_path, sr=22050, feature="melspectrogram", fft_size=2048, hop_length=2048, k=2, metric="cosine", mode="affinity", gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5, norm=False):
     y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
     y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
     ref = args[feature](y_ref, sr=sr, fft_size=fft_size, hop_length=hop_length)
@@ -219,24 +219,28 @@ def get_xsim_multi(y_comp_path, y_ref_path, sr=22050, feature="melspectrogram", 
     xsim_copy = copy.deepcopy(xsim_orig)
     paths = []
     paths.append(rqa_orig[1])
-    k = 0
-    while k < num_paths-1:
-        for (i, j) in paths[k]:
+    path_idx = 0
+    while path_idx < num_paths-1:
+        for (i, j) in paths[path_idx]:
             xsim_copy[i, j] = 0.0
         rqa = librosa.sequence.rqa(xsim_copy, gap_onset=gap_onset, gap_extend=gap_extend, knight_moves=knight_moves)
         paths.append(rqa[1])
-        k += 1
+        path_idx += 1
     info = {
-        "sample_rate": sr,
         "feature": feature,
+        "sample_rate": sr,
         "fft_size": fft_size,
         "hop_length": hop_length,
         "k": k,
         "metric": metric,
         "num_paths": num_paths,
-        "gap_onset": gap_onset,
-        "gap_extend": gap_extend,
-        "knight_moves": knight_moves
+        #"gap_onset": gap_onset,
+        #"gap_extend": gap_extend,
+        "knight_moves": knight_moves,
+        #"z_normed": norm,
+        #"y_ref_path": y_ref_path,
+        #"y_comp_path": y_comp_path,
+        "path_length": len(paths[0])
     }
     return xsim_orig, rqa_orig[0], paths, info
 
@@ -258,6 +262,63 @@ def plot_xsim_multi(xsim, rqa, paths):
         ax[1].plot(path[:, 1], path[:, 0], color='c', picker=True)
     #fig.canvas.mpl_connect('pick_event', onpick)
     plt.show(block=False)
+
+import pandas as pd
+import io
+import csv
+import random
+import plotly.express as px
+import plotly.io as pio
+
+pio.renderers.default = "browser"
+
+'''
+def plot_xsim_parallel_coordinates(csv):
+    csv = csv if (csv.split(".")[-1] == "csv") else io.StringIO(csv)
+    df = pd.read_csv(csv)
+    plt.figure()
+    pd.plotting.parallel_coordinates(
+        df[["feature", "sample_rate", "fft_size", "hop_length", "k", "metric", "num_paths", "gap_onset", "gap_extend", "knight_moves", "path_length"]], "feature")
+    plt.show()
+'''
+
+def plot_xsim_parallel_coordinates(csv):
+    csv = csv if (csv.split(".")[-1] == "csv") else io.StringIO(csv)
+    df = pd.read_csv(csv)
+    fig = px.parallel_coordinates(df,
+        color="feature",
+        dimensions=["feature", "fft_size", "hop_length", "k", "metric",  "knight_moves", "path_length"],
+        color_continuous_scale=px.colors.diverging.Tealrose,
+        color_continuous_midpoint=2)
+    #fig.update_layout(yaxis_type="category")
+    fig.show()
+
+def infos_to_csv(infos):
+    output = io.StringIO()
+    fieldnames = list(infos[0].keys())
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
+    writer.writeheader()
+    for info in infos:
+        writer.writerow(info)
+    return output.getvalue()
+
+def test_xsim_multi(y_comp_path, y_ref_path, n=10, sr=16000, k_range=[2,20]):
+    infos = []
+    fft_sizes = [1024, 2048, 4096, 8192, 16384]
+    features = ["stft", "melspectrogram", "cqt", "mfcc"]
+    metrics = ["cosine", "euclidean", "manhattan"]
+    for _ in range(0, n):
+        fft_size = random.choice(fft_sizes)
+        feature = random.choice(features)
+        metric = random.choice(metrics)
+        k = random.randint(k_range[0], k_range[1])
+        knight_moves = random.choice([True, False])
+        _, _, _, info = get_xsim_multi(y_comp_path, y_ref_path, sr=sr, feature=feature, fft_size=fft_size, hop_length=fft_size, metric=metric, k=k, knight_moves=knight_moves, num_paths=1)
+        info["feature"] = features.index(feature)
+        info["metric"] = metrics.index(metric)
+        infos.append(info)
+    csv_string = infos_to_csv(infos)
+    plot_xsim_parallel_coordinates(csv_string)
 
 def get_xsim_start_end_times2(score, plot, y_ref, y_comp, sr):
     score1_len, score2_len = score.shape
@@ -288,8 +349,6 @@ def write_path_files(outdir, score, paths, y_ref_path, y_comp_path, sr, info):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     if info:
-        info["y_ref_file"] = y_ref_path,
-        info["y_comp_file"] = y_comp_path,
         with open(os.path.join(outdir, "info.json"), "w") as f:
             json.dump(info, f, indent=4)
     y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)

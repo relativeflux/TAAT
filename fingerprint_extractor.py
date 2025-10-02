@@ -632,11 +632,16 @@ class FingerprintExtractor:
         keys = list(query_output.keys())
         for (i, v) in enumerate(list(query_output.values())):
             k = keys[i]
+            query_segs = [[match["queryStart"]*1000, match["queryStop"]*1000] for match in v]
+            ref_segs = [[match["referenceStart"]*1000, match["referenceStop"]*1000] for match in v]
+            match_count = len(ref_segs)
             result[f"results_{i}"] = {
+                "match_count": match_count,
+                "match_proportion": match_count / self.numHashes,
                 "query_file": os.path.basename(query_file_path),
-                "query_segments": [[match["queryStart"], match["queryStop"]] for match in v],
+                "query_segments": query_segs,
                 "reference_file": os.path.basename(k),
-                "reference_segments": [[match["referenceStart"], match["referenceStop"]] for match in v]
+                "reference_segments": ref_segs
             }
             
             
