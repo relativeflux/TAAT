@@ -66,6 +66,24 @@ def plot_best_motif_match(ts_mfcc, query_mfcc, motifs, m):
     plt.legend()
     plt.show()
 
-
-
-        
+def write_best_motif_file(outdir, ts_filepath, query_filepath, motifs, m=500, sr=16000, n_fft=1024, hop_length=1024, channel=16):
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+    ts_filename = os.path.basename(ts_filepath).split(".wav")[0]
+    query_filename = os.path.basename(query_filepath).split(".wav")[0]
+    subfolder_name = f"{ts_filename}_&_{query_filename}"
+    subfolder_path = os.path.join(outdir, subfolder_name)
+    if not os.path.exists(subfolder_path):
+        os.makedirs(subfolder_path)
+    ts, _ = librosa.load(ts_filepath, sr=sr, mono=True)
+    query, _ = librosa.load(query_filepath, sr=sr, mono=True)
+    ts_mfcc = librosa.feature.mfcc(y=ts, sr=sr, n_fft=n_fft, hop_length=hop_length)[channel]
+    query_mfcc = librosa.feature.mfcc(y=query, sr=sr, n_fft=n_fft, hop_length=hop_length)[channel]
+    ts_motif_index = motifs[:, 0].argmin()
+    query_motif_index = motifs[ts_motif_index, 1]
+    ts_start = librosa.frames_to_time(ts_motif_index, n_fft=n_fft, hop_length=hop_length)
+    ts_end = librosa.frames_to_time(ts_motif_index + m, n_fft=n_fft, hop_length=hop_length)
+    write_match_file(subfolder_path, ts_filepath, f"ts_motif", ts_start, ts_end, sr)
+    query_start = librosa.frames_to_time(query_motif_index, n_fft=n_fft, hop_length=hop_length)
+    query_end = librosa.frames_to_time(query_motif_index + m, n_fft=n_fft, hop_length=hop_length)
+    write_match_file(subfolder_path, query_filepath, f"query_motif", query_start, query_end, sr)
