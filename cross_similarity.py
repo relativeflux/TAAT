@@ -79,11 +79,11 @@ FEATURES = [
     'spectral_flatness',
 ]
 
-def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
-    nyquist = 0.5 * fs
+def butter_bandpass_filter(data, lowcut=180, highcut=3000, sr=16000, order=5):
+    nyquist = 0.5 * sr
     low = lowcut / nyquist
     high = highcut / nyquist
-    b, a = signal.butter(order, [low, high], btype='band')
+    b, a = signal.butter(order, [low, high], btype="band")
     return signal.lfilter(b, a, data)
 
 def stft(y, sr=22050, fft_size=2048, hop_length=2048):
@@ -204,9 +204,11 @@ import os
 import json
 import stumpy
 
-def get_xsim_multi(y_comp_path, y_ref_path, sr=22050, feature="melspectrogram", fft_size=2048, hop_length=2048, k=2, metric="cosine", mode="affinity", gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5, norm=False):
+def get_xsim_multi(y_comp_path, y_ref_path, sr=22050, feature="melspectrogram", fft_size=2048, hop_length=2048, k=2, metric="cosine", mode="affinity", gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5, lowcut=180, highcut=3000, norm=False):
     y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
     y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
+    y_ref = butter_bandpass_filter(y_ref, lowcut=lowcut, highcut=highcut, sr=sr)
+    y_comp = butter_bandpass_filter(y_comp, lowcut=lowcut, highcut=highcut, sr=sr)
     ref = args[feature](y_ref, sr=sr, fft_size=fft_size, hop_length=hop_length)
     comp = args[feature](y_comp, sr=sr, fft_size=fft_size, hop_length=hop_length)
     if norm:

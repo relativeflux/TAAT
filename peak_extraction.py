@@ -100,6 +100,13 @@ def parse_peaks(peaks, n_fft=2048, hop_length=1024):
         result[f] = amps[i]
     return result
 
+def parse_peaks2(peaks, spect):
+    peaks = sorted(peaks)
+    result = np.zeros(spect.shape[1])
+    for peak in peaks:
+        result[peak[0]] = peak[2]
+    return result
+
 def get_peaks_xsim(comp_path, ref_path, analysis_type="melspectrogram", sr=16000, n_fft=2048, hop_length=1024, peak_threshold=2.75, k=2, metric='euclidean', mode='affinity'):
     ref_spect, ref_peaks = find_peaks(ref_path, analysis_type, sr, n_fft, hop_length, peak_threshold)
     ref_zeros = np.zeros(ref_spect.shape)

@@ -36,11 +36,11 @@ def imshow(img, cmap="gray"):
     plt.imshow(img, cmap=cmap)
     plt.show()
 
-def match_images(img_path1, img_path2, numHashes=256, k=200):
+def match_images(img_path1, img_path2, numHashes=256, k=0):
     a = pickRandomCoeffs(numHashes)
     b = pickRandomCoeffs(numHashes)
-    img1 = binarize_img(img_path1) if k and k>0 else binarize_img_topK(img_path1, k)
-    img2 = binarize_img(img_path2) if k and k>0 else binarize_img_topK(img_path2, k)
+    img1 = binarize_img_topK(img_path1, k) if k and k>0 else binarize_img(img_path1)
+    img2 = binarize_img_topK(img_path2, k) if k and k>0 else binarize_img(img_path2)
     s1 = create_shingleIDset(np.packbits(img1))
     s2 = create_shingleIDset(np.packbits(img2))
     sig1 = get_minhash_signature(s1, numHashes, a, b)
@@ -52,10 +52,10 @@ def match_images(img_path1, img_path2, numHashes=256, k=200):
 
 def create_shingleIDset(d):
     shingles = set() #[]
-    for i in range(0, len(d) - 3):
+    for i in range(0, len(d) - 2):
         b = f"{d[i]} {d[i+1]} {d[i+2]}".encode("ascii")
         h = binascii.crc32(b) & 0xffffffff
-        shingles.add(h)   
+        shingles.add(h)
     return shingles
 
 def minhash(d1, d2, numHashes=256):
@@ -101,7 +101,7 @@ def get_minhash_signature(shingleIDSet, numHashes, a, b):
         signature.append(minHashCode)
     return signature
 
-def test_query(sig1, sig2, numHashes=64):
+def test_query(sig1, sig2, numHashes=256):
     count = 0
     for k in range(0, numHashes):
         count = count + (sig1[k] == sig2[k])

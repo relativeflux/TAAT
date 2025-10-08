@@ -4,7 +4,7 @@ import librosa
 import stumpy
 import matplotlib.pyplot as plt
 import soundfile as sf
-from peak_extraction import find_peaks
+from peak_extraction import * #find_peaks
 
 
 def get_matches(filepath1, filepath2, max_distance="auto"):
@@ -50,9 +50,24 @@ def get_motifs(ts_filepath, query_filepath, sr=16000, n_fft=1024, hop_length=102
     query, _ = librosa.load(query_filepath, sr=sr, mono=True)
     ts = ts.astype(np.float64)
     query = query.astype(np.float64)
-    ts_mfcc = librosa.feature.mfcc(y=ts, sr=sr, n_fft=n_fft, hop_length=hop_length)[channel]
-    query_mfcc = librosa.feature.mfcc(y=query, sr=sr, n_fft=n_fft, hop_length=hop_length)[channel]
-    return stumpy.stump(T_A = ts_mfcc, m = m, T_B = query_mfcc, ignore_trivial = False)
+    ts_mfcc = librosa.feature.mfcc(y=ts, sr=sr, n_fft=n_fft, hop_length=hop_length)
+    query_mfcc = librosa.feature.mfcc(y=query, sr=sr, n_fft=n_fft, hop_length=hop_length)
+    if channel=="mean":
+        ts_mfcc = np.mean(ts_mfcc, axis=0)
+        query_mfcc = np.mean(query_mfcc, axis=0)
+    else:
+        ts_mfcc = ts_mfcc[channel]
+        query_mfcc = query_mfcc[channel]
+    motifs = stumpy.stump(T_A = ts_mfcc, m = m, T_B = query_mfcc, ignore_trivial = False)
+    return motifs, ts_mfcc, query_mfcc
+
+def get_motifs2(ts_filepath, query_filepath, sr=16000, n_fft=1024, hop_length=1024, m=500):
+    tss, ts = find_peaks(ts_filepath, sr=sr, n_fft=n_fft, hop_length=hop_length, threshold=0.0)
+    qs, query = find_peaks(query_filepath, sr=sr, n_fft=n_fft, hop_length=hop_length, threshold=0.0)
+    ts = parse_peaks2(ts, tss).astype(np.float64)
+    query = parse_peaks2(query, qs).astype(np.float64)
+    motifs = stumpy.stump(T_A=ts, m=m, T_B=query, ignore_trivial=False)
+    return motifs, ts, query
 
 def plot_best_motif_match(ts_mfcc, query_mfcc, motifs, m):
     best_motif_index = motifs[:, 0].argmin()
@@ -67,6 +82,7 @@ def plot_best_motif_match(ts_mfcc, query_mfcc, motifs, m):
     plt.show()
 
 def write_best_motif_file(outdir, ts_filepath, query_filepath, motifs, m=500, sr=16000, n_fft=1024, hop_length=1024, channel=16):
+    "Create the relevant directories, if they don't exist..."
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     ts_filename = os.path.basename(ts_filepath).split(".wav")[0]
@@ -75,10 +91,18 @@ def write_best_motif_file(outdir, ts_filepath, query_filepath, motifs, m=500, sr
     subfolder_path = os.path.join(outdir, subfolder_name)
     if not os.path.exists(subfolder_path):
         os.makedirs(subfolder_path)
+    "Load the audio, and generate the feature matrices..."
     ts, _ = librosa.load(ts_filepath, sr=sr, mono=True)
     query, _ = librosa.load(query_filepath, sr=sr, mono=True)
-    ts_mfcc = librosa.feature.mfcc(y=ts, sr=sr, n_fft=n_fft, hop_length=hop_length)[channel]
-    query_mfcc = librosa.feature.mfcc(y=query, sr=sr, n_fft=n_fft, hop_length=hop_length)[channel]
+    ts_mfcc = librosa.feature.mfcc(y=ts, sr=sr, n_fft=n_fft, hop_length=hop_length)
+    query_mfcc = librosa.feature.mfcc(y=query, sr=sr, n_fft=n_fft, hop_length=hop_length)
+    if channel=="mean":
+        ts_mfcc = np.mean(ts_mfcc, axis=0)
+        query_mfcc = np.mean(query_mfcc, axis=0)
+    else:
+        ts_mfcc = ts_mfcc[channel]
+        query_mfcc = query_mfcc[channel]
+    "Compute the start and end times for the motifs, and write the motifs to disk..."
     ts_motif_index = motifs[:, 0].argmin()
     query_motif_index = motifs[ts_motif_index, 1]
     ts_start = librosa.frames_to_time(ts_motif_index, n_fft=n_fft, hop_length=hop_length)
