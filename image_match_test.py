@@ -16,14 +16,20 @@ d2 = set(random.randint(0, 256) for _ in range(1000))
 a = [6, 6, 6, 6, 6, 5, 5, 5, 5, 5]
 b = [5, 5, 5, 5, 5, 6, 6, 6, 6, 6]
 
-def binarize_img(img_path):
-    img = skimage.io.imread(img_path)
+def audio_file_to_img_data(filepath, sr=16000, n_fft=1024, hop_length=1024):
+    audio, _ = librosa.load(filepath, sr=sr, mono=True)
+    spect = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)
+    spect = librosa.amplitude_to_db(np.abs(spect), ref=np.max)
+    return spectrogram_to_img_data(spect, sr)
+
+def binarize_img(img):
+    #img = skimage.io.imread(img_path)
     img = skimage.color.rgb2gray(img[:,:,:3])
     thresh = skimage.filters.threshold_otsu(img)
     return img > thresh
 
-def binarize_img_topK(img_path, k=200):
-    img = skimage.io.imread(img_path)
+def binarize_img_topK(img, k=200):
+    #img = skimage.io.imread(img_path)
     img = skimage.color.rgb2gray(img[:,:,:3])
     n, m = np.shape(img)
     bv = np.zeros((n,m), dtype=bool)
@@ -36,11 +42,13 @@ def imshow(img, cmap="gray"):
     plt.imshow(img, cmap=cmap)
     plt.show()
 
-def match_images(img_path1, img_path2, numHashes=256, k=0):
+def match_images(filepath1, filepath2, numHashes=256, k=0):
     a = pickRandomCoeffs(numHashes)
     b = pickRandomCoeffs(numHashes)
-    img1 = binarize_img_topK(img_path1, k) if k and k>0 else binarize_img(img_path1)
-    img2 = binarize_img_topK(img_path2, k) if k and k>0 else binarize_img(img_path2)
+    img1 = audio_file_to_img_data(filepath1)
+    img2 = audio_file_to_img_data(filepath2)
+    img1 = binarize_img_topK(img1, k) if k and k>0 else binarize_img(img1)
+    img2 = binarize_img_topK(img2, k) if k and k>0 else binarize_img(img2)
     s1 = create_shingleIDset(np.packbits(img1))
     s2 = create_shingleIDset(np.packbits(img2))
     sig1 = get_minhash_signature(s1, numHashes, a, b)

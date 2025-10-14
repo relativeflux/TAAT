@@ -90,6 +90,22 @@ def plot_peaks(spect, peaks, peaks_only=False, figsize=[16,8], s=1.5, color="red
     ax.matshow(bg[:500, :600])
     plt.show()
 
+def peak_plot_to_img_data(peaks, figsize=[16,8], s=1.5, color="red"):
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.scatter(
+        x=[p[0] for p in peaks],
+        y=[p[1] for p in peaks],
+        s=s,
+        color=color
+    )
+    plt.xticks([])
+    plt.yticks([])
+    plt.tight_layout(pad=0)
+    fig.canvas.draw()
+    data = np.array(fig.canvas.renderer.buffer_rgba())
+    plt.close()
+    return data[:, :, :3]
+
 def parse_peaks(peaks, n_fft=2048, hop_length=1024):
     peaks = np.array(sorted(peaks))
     frames = librosa.frames_to_samples(peaks[:,0], n_fft=n_fft, hop_length=hop_length)
