@@ -410,7 +410,7 @@ class FingerprintExtractorORIGINAL:
 
 class FingerprintExtractor:
 
-    def __init__(self, source_dir, analysis_type="melspectrogram", numHashes=10, sr=16000, n_fft=1024, hop_length=1024, peak_threshold=2.75, time_interval_max=5):
+    def __init__(self, source_dir, analysis_type="melspectrogram", numHashes=10, sr=16000, n_fft=1024, hop_length=1024, peak_threshold=2.75, time_interval_max=5, n_bins=None):
 
         self.source_dir = source_dir
         self.analysis_type = analysis_type
@@ -421,6 +421,7 @@ class FingerprintExtractor:
 
         self.numHashes = numHashes
         self.time_interval_max = time_interval_max
+        self.n_bins = n_bins
 
         self.docNames = []
 
@@ -449,8 +450,9 @@ class FingerprintExtractor:
         n_fft = self.n_fft
         hop_length = self.hop_length
         threshold = self.peak_threshold
+        n_bins = self.n_bins
 
-        _, peaks = find_peaks(filepath, analysis_type, sr, n_fft, hop_length, threshold)
+        _, peaks = find_peaks(filepath, analysis_type, sr, n_fft, hop_length, threshold, n_bins)
         peaks = sorted(peaks)
 
         fingerprints = set()

@@ -19,16 +19,16 @@ The steps are as follows:
 5. For each isolated region in the label matrix, extract the max intensity value from the original spectrogram.
 6. Create a list of peak values and their location.
 '''
-def find_peaks(filepath, analysis_type="stft", sr=16000, n_fft=2048, hop_length=1024, threshold=2.75):
+def find_peaks(filepath, analysis_type="stft", sr=16000, n_fft=1024, hop_length=1024, threshold=2.75, n_bins=None):
     audio, _ = librosa.load(filepath, sr=sr, mono=True)
     spect = False
     if analysis_type=="stft":
-        spect = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)
+        spect = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)[0:n_bins]
         spect = np.abs(spect)
     elif analysis_type=="melspectrogram":
-        spect = librosa.feature.melspectrogram(y=audio, sr=sr, n_fft=n_fft, hop_length=hop_length)
+        spect = librosa.feature.melspectrogram(y=audio, sr=sr, n_fft=n_fft, hop_length=hop_length)[0:n_bins]
     else:
-        spect = librosa.cqt(audio, sr=sr, hop_length=hop_length)
+        spect = librosa.cqt(audio, sr=sr, hop_length=hop_length)[0:n_bins]
     spect = librosa.amplitude_to_db(spect, ref=np.max)
     # Remove zero values.
     flattened = np.matrix.flatten(spect)
@@ -52,7 +52,7 @@ def find_peaks(filepath, analysis_type="stft", sr=16000, n_fft=2048, hop_length=
     return spect, peaks
 
 '''
-def find_peaks(filepath, sr=16000, n_fft=2048, hop_length=1024, threshold=2.75):
+def find_peaks(filepath, sr=16000, n_fft=1024, hop_length=1024, threshold=2.75):
     audio, _ = librosa.load(filepath, sr=sr, mono=True)
     mel_spect = librosa.feature.melspectrogram(y=audio, sr=sr, n_fft=n_fft, hop_length=hop_length)
     db_mel_spect = librosa.amplitude_to_db(mel_spect, ref=np.max)
@@ -123,7 +123,7 @@ def parse_peaks2(peaks, spect):
         result[peak[0]] = peak[2]
     return result
 
-def get_peaks_xsim(comp_path, ref_path, analysis_type="melspectrogram", sr=16000, n_fft=2048, hop_length=1024, peak_threshold=2.75, k=2, metric='euclidean', mode='affinity'):
+def get_peaks_xsim(comp_path, ref_path, analysis_type="melspectrogram", sr=16000, n_fft=1024, hop_length=1024, peak_threshold=2.75, k=2, metric='euclidean', mode='affinity'):
     ref_spect, ref_peaks = find_peaks(ref_path, analysis_type, sr, n_fft, hop_length, peak_threshold)
     ref_zeros = np.zeros(ref_spect.shape)
     for [t, f, m] in ref_peaks:
@@ -147,7 +147,7 @@ plot_cross_similarity_matrix(xsim, hop_length=1024)
 import os
 import soundfile as sf
 
-def get_layer(filepath, outdir, analysis_type="stft", sr=16000, n_fft=2048, hop_length=1024, peak_threshold=2.75):
+def get_layer(filepath, outdir, analysis_type="stft", sr=16000, n_fft=1024, hop_length=1024, peak_threshold=2.75):
     audio, _ = librosa.load(filepath, sr=sr, mono=True)
     spect = False
     if analysis_type=="stft":
