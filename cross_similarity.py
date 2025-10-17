@@ -204,7 +204,7 @@ import os
 import json
 import stumpy
 
-def get_xsim_multi(y_comp_path, y_ref_path, sr=22050, feature="melspectrogram", fft_size=2048, hop_length=2048, k=2, metric="cosine", mode="affinity", gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5, lowcut=180, highcut=3000, norm=False):
+def get_xsim_multi(y_comp_path, y_ref_path, sr=22050, feature="melspectrogram", fft_size=2048, hop_length=2048, k=2, metric="cosine", mode="affinity", gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5, lowcut=180, highcut=3000, norm=False, enhance=False):
     y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
     y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
     y_ref = butter_bandpass_filter(y_ref, lowcut=lowcut, highcut=highcut, sr=sr)
@@ -217,6 +217,8 @@ def get_xsim_multi(y_comp_path, y_ref_path, sr=22050, feature="melspectrogram", 
     x_ref = librosa.feature.stack_memory(ref, n_steps=10, delay=3)
     x_comp = librosa.feature.stack_memory(comp, n_steps=10, delay=3)
     xsim_orig = librosa.segment.cross_similarity(x_comp, x_ref, k=k, metric=metric, mode=mode)
+    if enhance:
+        xsim_orig = librosa.segment.path_enhance(xsim_orig, 64, n_filters=10)
     rqa_orig = librosa.sequence.rqa(xsim_orig, gap_onset=gap_onset, gap_extend=gap_extend, knight_moves=knight_moves)
     xsim_copy = copy.deepcopy(xsim_orig)
     paths = []
