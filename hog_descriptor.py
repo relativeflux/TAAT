@@ -80,6 +80,30 @@ def get_hog_descriptor_clusters(source_dir, sr=16000, n_fft=1024, hop_length=512
     Z = linkage(cond_distance_matrix, method='ward', metric=metric)
     return Z
 
+'''
+def chi2_distance(histA, histB, eps=1e-10):
+	# compute the chi-squared distance
+	d = 0.5 * np.sum([((a - b) ** 2) / (a + b + eps)
+		for (a, b) in zip(histA, histB)])
+	# return the chi-squared distance
+	return d
+'''
+
+def chi2_distance(histA, histB, eps=1.0e-4):
+    num = (histA - histB) ** 2
+    denom = histA + histB
+    denom[denom == 0] = np.inf
+    frac = num / denom
+    chi_sqr = 0.5 * np.sum(frac)
+    return 1 / (chi_sqr + eps)
+
+def match_hog_descriptors(fd1, fd2, threshold=1.0):
+    count = 0
+    for (i, elt) in enumerate(fd1):
+        dist = chi2_distance(elt, fd2[i])
+        count = count + (int(dist) < threshold)
+    return count / len(fd1)
+
 def plot_hog_descriptor_clusters(Z, source_dir, figsize=(12,6)):
     files = []
     for dirpath, dirnames, filenames in os.walk(source_dir):

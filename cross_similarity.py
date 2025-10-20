@@ -248,6 +248,90 @@ def get_xsim_multi(y_comp_path, y_ref_path, sr=22050, feature="melspectrogram", 
     }
     return xsim_orig, rqa_orig[0], paths, info
 
+## Helper function for quickly getting properly time-formatted paths:
+def get_time_formatted_paths(paths, n_fft=2048, hop_length=1024):
+    paths_ = []
+    for path in paths:
+        ref_start, query_start = path[0]
+        ref_stop, query_stop = path[-1]
+        ref_start = float(librosa.frames_to_time(ref_start, n_fft=n_fft, hop_length=hop_length))
+        ref_stop = float(librosa.frames_to_time(ref_stop, n_fft=n_fft, hop_length=hop_length))
+        query_start = float(librosa.frames_to_time(query_start, n_fft=n_fft, hop_length=hop_length))
+        query_stop = float(librosa.frames_to_time(query_stop, n_fft=n_fft, hop_length=hop_length))
+        paths_.append([ref_start, ref_stop, query_start, query_stop])
+    durs = [(r-p, s-q) for [p, r, q, s] in paths_]
+    return paths_, durs
+
+
+import skimage
+from waveprint import spectrogram_to_img_data
+from hog_descriptor import chi2_distance
+
+def get_hog_descriptor(img_data, orientations=8, pixels_per_cell=(16,16), cells_per_block=(1,1), binarize=True):
+    fd, hog = skimage.feature.hog(img_data,
+        orientations=orientations,
+        pixels_per_cell=pixels_per_cell,
+        cells_per_block=cells_per_block,
+        visualize=True,
+        channel_axis=-1,
+    )
+    if binarize:
+        thresh = skimage.filters.threshold_otsu(hog)
+        hog = hog > thresh
+    return fd, hog
+
+def query(query_filepath, source_dir, sr=16000, n_fft=2048, hop_length=1024, orientations=8, pixels_per_cell=(16,16), cells_per_block=(1,1), verbose=True, no_identity_match=True, k=5, num_paths=5, enhance=True):
+    matches = {}
+    for dirpath, dirnames, filenames in os.walk(source_dir):
+        for filename in filenames:
+            if filename.endswith(".wav"):
+                ref_filepath = os.path.join(dirpath, filename)
+                if no_identity_match==True and os.path.basename(ref_filepath) != os.path.basename(query_filepath):
+                    ref_xsim, ref_rqa, ref_paths, _ = get_xsim_multi(ref_filepath, ref_filepath, fft_size=n_fft, hop_length=hop_length, k=k, num_paths=num_paths, enhance=enhance)
+                    query_xsim, query_rqa, query_paths, _ = get_xsim_multi(ref_filepath, query_filepath, fft_size=n_fft, hop_length=hop_length, k=k, num_paths=num_paths, enhance=enhance)
+                    '''
+                    ref_img_data = spectrogram_to_img_data(ref_xsim, sr)
+                    query_img_data = spectrogram_to_img_data(query_xsim, sr)
+                    ref_fd, ref_hog = get_hog_descriptor(ref_img_data)
+                    query_fd, query_hog = get_hog_descriptor(query_img_data)
+                    score = chi2_distance(ref_fd, query_fd)
+                    print(os.path.basename(ref_filepath), score)
+                    '''
+                    paths, _ = get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
+                    for (ref_start, ref_stop, query_start, query_stop) in paths:
+                        match = {
+                            "queryStart": query_start,
+                            "queryStop": query_stop,
+                            "referenceStart": ref_start,
+                            "referenceStop": ref_stop,
+                        }
+                        if ref_filepath not in matches:
+                            matches[ref_filepath] = [match]
+                        else:
+                            matches[ref_filepath].append(match)
+    if verbose:
+        return matches
+    else:
+        return parse_query_output(query_filepath, matches)
+
+def parse_query_output(query_filepath, query_output):
+    result = {}
+    keys = list(query_output.keys())
+    for (i, v) in enumerate(list(query_output.values())):
+        k = keys[i]
+        query_segs = [[match["queryStart"]*1000, match["queryStop"]*1000] for match in v]
+        ref_segs = [[match["referenceStart"]*1000, match["referenceStop"]*1000] for match in v]
+        #match_count = len(ref_segs)
+        result[f"results_{i}"] = {
+            #"match_count": match_count,
+            #"match_proportion": match_count / self.numHashes,
+            "query_file": os.path.basename(query_filepath),
+            "query_segments": query_segs, #np.array(query_segs).astype(float),
+            "reference_file": os.path.basename(k),
+            "reference_segments": ref_segs #np.array(ref_segs).astype(float)
+        }
+    return result
+
 def onpick(event):
     thisline = event.artist
     xdata = thisline.get_xdata()

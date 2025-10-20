@@ -38,8 +38,12 @@ def binarize_img_topK(img, k=200):
         bv[i,idx] = img[i,idx] > 0
     return bv
     
-def imshow(img, cmap="gray"):
+def imshow(img, cmap="gray", show_ticks=False):
     plt.imshow(img, cmap=cmap)
+    if not show_ticks:
+        plt.xticks([])
+        plt.yticks([])
+        plt.tight_layout(pad=0)
     plt.show()
 
 def match_images(filepath1, filepath2, numHashes=256, k=0):

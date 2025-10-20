@@ -4,7 +4,6 @@ import librosa
 from scipy.spatial import distance
 from matplotlib import pyplot as plt
 
-from audio import load
 from features import extract_features
 
 from ssm import compute_sm_from_filename, compute_novelty_ssm, plot_signal
@@ -66,7 +65,7 @@ def test(input):
 [3, 12, 1, 9]
 
 def get_segmentation(filename, chunk_length, fft_size, hop_length):
-    (_, sr, audio) = load(filename)
+    audio, sr = librosa.load(filename, mono=True)
     seg = novelty_segmentation(audio, sr, chunk_length, fft_size, hop_length)
     plt.set_cmap("gray")
     plt.imshow(seg, interpolation="none")
