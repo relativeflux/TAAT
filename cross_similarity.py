@@ -287,7 +287,8 @@ def query(query_filepath, source_dir, sr=16000, n_fft=2048, hop_length=1024, ori
             if filename.endswith(".wav"):
                 ref_filepath = os.path.join(dirpath, filename)
                 if no_identity_match==True and os.path.basename(ref_filepath) != os.path.basename(query_filepath):
-                    ref_xsim, ref_rqa, ref_paths, _ = get_xsim_multi(ref_filepath, ref_filepath, fft_size=n_fft, hop_length=hop_length, k=k, num_paths=num_paths, enhance=enhance)
+                    #ref_xsim, ref_rqa, ref_paths, _ = get_xsim_multi(ref_filepath, ref_filepath, fft_size=n_fft, hop_length=hop_length, k=k, num_paths=num_paths, enhance=enhance)
+                    print(f"Computing cross-similarity for {os.path.basename(query_filepath)} against {os.path.basename(ref_filepath)}.")
                     query_xsim, query_rqa, query_paths, _ = get_xsim_multi(ref_filepath, query_filepath, fft_size=n_fft, hop_length=hop_length, k=k, num_paths=num_paths, enhance=enhance)
                     '''
                     ref_img_data = spectrogram_to_img_data(ref_xsim, sr)
