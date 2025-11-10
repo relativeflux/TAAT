@@ -13,9 +13,6 @@ from waveprint import spectrogram_to_img_data
 d1 = set(random.randint(0, 256) for _ in range(1000))
 d2 = set(random.randint(0, 256) for _ in range(1000))
 
-a = [6, 6, 6, 6, 6, 5, 5, 5, 5, 5]
-b = [5, 5, 5, 5, 5, 6, 6, 6, 6, 6]
-
 def audio_file_to_img_data(filepath, sr=16000, n_fft=1024, hop_length=1024):
     audio, _ = librosa.load(filepath, sr=sr, mono=True)
     spect = librosa.stft(audio, n_fft=n_fft, hop_length=hop_length)

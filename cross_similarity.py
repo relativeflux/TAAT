@@ -3,81 +3,9 @@ import librosa
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.signal as signal
+import scipy.spatial.distance as distance
+import sklearn
 
-
-def get_spectrogram(buffer, fft_size=2048, hop_length=2048):
-    # Amplitude spectrum (STFT)
-    stft = librosa.stft(buffer, n_fft=fft_size, hop_length=hop_length)
-    stft = np.abs(stft)
-    # DB spectrum
-    return librosa.amplitude_to_db(stft, ref=np.max)
-
-def get_cross_similarity_matrix(y_ref, y_comp, sr=22050, fft_size=2048, hop_length=2048, k=2, metric='euclidean'):
-    ref = librosa.feature.chroma_cqt(y=y_ref, sr=sr, hop_length=hop_length)
-    comp = librosa.feature.chroma_cqt(y=y_comp, sr=sr, hop_length=hop_length)
-    x_ref = librosa.feature.stack_memory(ref, n_steps=10, delay=3)
-    x_comp = librosa.feature.stack_memory(comp, n_steps=10, delay=3)
-    return librosa.segment.cross_similarity(x_comp, x_ref, k=k, metric=metric)
-
-def get_cross_similarity_matrix2(y_ref, y_comp, sr=22050, fft_size=2048, hop_length=2048, k=2, metric='euclidean'):
-    ref = get_spectrogram(y_ref, fft_size=fft_size, hop_length=hop_length)
-    comp = get_spectrogram(y_comp, fft_size=fft_size, hop_length=hop_length)
-    x_ref = librosa.feature.stack_memory(ref, n_steps=10, delay=3)
-    x_comp = librosa.feature.stack_memory(comp, n_steps=10, delay=3)
-    return librosa.segment.cross_similarity(x_comp, x_ref, k=k, metric=metric)
-
-'''
-def plot_cross_similarity_matrix(xsim, hop_length=2048):
-    fig, ax = plt.subplots(ncols=2, sharex=True, sharey=True)
-    imgsim = librosa.display.specshow(xsim, x_axis='s', y_axis='s',
-                             hop_length=hop_length, ax=ax[0])
-    ax[0].set(title='Binary cross-similarity (symmetric)')
-    fig.colorbar(imgsim, ax=ax[0], orientation='horizontal', ticks=[0, 1])
-    plt.show()
-'''
-
-def plot_cross_similarity_matrix(xsim, hop_length=2048):
-    fig, ax = plt.subplots(ncols=1, sharex=True, sharey=True)
-    imgsim = librosa.display.specshow(xsim, cmap='magma_r', x_axis='s', y_axis='s',
-                             hop_length=hop_length, ax=ax)
-    ax.set(title='Binary cross-similarity (symmetric)')
-    fig.colorbar(imgsim, ax=ax, orientation='horizontal', ticks=[0, 1])
-    plt.show()
-
-
-'''
-import librosa
-from cross_similarity import get_cross_similarity_matrix, plot_cross_similarity_matrix
-
-file_path1 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 1/data/001 End of the World (op.1).wav'
-file_path2 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 1/data/004 The Spider (op.9).wav'
-file_path3 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 1/input/005 Disintegration (op.10).wav'
-
-y_ref, sr = librosa.load(file_path1, sr=22050, mono=True)
-y_comp, sr = librosa.load(file_path1, sr=22050, mono=True, offset=30)
-
-xsim = get_cross_similarity_matrix(y_comp, y_ref, k=2)
-
-plot_cross_similarity_matrix(xsim, hop_length=2048)
-
-#############################################################
-
-# Test 1: file_path1, file_path3; Used librosa.feature.chroma_cqt; k=5
-# Test 2: file_path1, file_path1 (offset=30); Used librosa.feature.chroma_cqt; k=15
-# Test 3: file_path1, file_path3; Used get_spectrogram; k=15
-# Test 4: file_path1, file_path2; Used get_spectrogram;k=15
-# Test 5: file_path1, file_path3; Used get_spectrogram; k=25
-'''
-
-FEATURES = [
-    'chroma_cqt',
-    'mel_spectrogram',
-    'mfcc',
-    'spectral_centroid',
-    'spectral_bandwidth',
-    'spectral_contrast',
-    'spectral_flatness',
-]
 
 def butter_bandpass_filter(data, lowcut=180, highcut=3000, sr=16000, order=5):
     nyquist = 0.5 * sr
@@ -86,36 +14,36 @@ def butter_bandpass_filter(data, lowcut=180, highcut=3000, sr=16000, order=5):
     b, a = signal.butter(order, [low, high], btype="band")
     return signal.lfilter(b, a, data)
 
-def stft(y, sr=22050, fft_size=2048, hop_length=2048):
+def stft(y, sr=22050, fft_size=2048, hop_length=1024):
     spect = librosa.stft(y, n_fft=fft_size, hop_length=hop_length)
     return librosa.amplitude_to_db(np.abs(spect), ref=np.max)
 
-def cqt(y, sr=22050, fft_size=2048, hop_length=2048):
+def cqt(y, sr=22050, fft_size=2048, hop_length=1024):
     spect = librosa.cqt(y, sr=sr, hop_length=hop_length)
     return librosa.amplitude_to_db(np.abs(spect), ref=np.max)
 
-def melspectrogram(y, sr=22050, fft_size=2048, hop_length=2048):
+def melspectrogram(y, sr=22050, fft_size=2048, hop_length=1024):
     mel_spect = librosa.feature.melspectrogram(y=y, sr=sr, n_fft=fft_size, hop_length=hop_length)
     return librosa.amplitude_to_db(mel_spect, ref=np.max)
 
-def mfcc(y, sr=22050, fft_size=2048, hop_length=2048):
+def mfcc(y, sr=22050, fft_size=2048, hop_length=1024):
     return librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13, hop_length=hop_length)
 
-def spectral_centroid(y, sr=22050, fft_size=2048, hop_length=2048):
+def spectral_centroid(y, sr=22050, fft_size=2048, hop_length=1024):
     return librosa.feature.spectral_centroid(y=y, sr=sr, n_fft=fft_size, hop_length=hop_length)
 
-def spectral_bandwidth(y, sr=22050, fft_size=2048, hop_length=2048):
+def spectral_bandwidth(y, sr=22050, fft_size=2048, hop_length=1024):
     return librosa.feature.spectral_bandwidth(y=y, sr=sr, n_fft=fft_size, hop_length=hop_length)
 
-def spectral_contrast(y, sr=22050, fft_size=2048, hop_length=2048):
+def spectral_contrast(y, sr=22050, fft_size=2048, hop_length=1024):
     return librosa.feature.spectral_contrast(y=y, sr=sr, n_fft=fft_size, hop_length=hop_length)
 
-def spectral_flatness(y, sr=22050, fft_size=2048, hop_length=2048):
+def spectral_flatness(y, sr=22050, fft_size=2048, hop_length=1024):
     return librosa.feature.spectral_flatness(y=y, n_fft=fft_size, hop_length=hop_length)
 
 args = locals()
 
-def get_xsim(y_comp, y_ref, sr=22050, feature="melspectrogram", fft_size=2048, hop_length=2048, k=2, metric='euclidean', mode='affinity', gap_onset=np.inf, gap_extend=np.inf, knight_moves=False):
+def get_xsim(y_comp, y_ref, sr=16000, feature="melspectrogram", fft_size=2048, hop_length=1024, k=2, metric='euclidean', mode='affinity', gap_onset=np.inf, gap_extend=np.inf, knight_moves=False):
     ref = args[feature](y_ref, sr=sr, fft_size=fft_size, hop_length=hop_length)
     comp = args[feature](y_comp, sr=sr, fft_size=fft_size, hop_length=hop_length)
     x_ref = librosa.feature.stack_memory(ref, n_steps=10, delay=3)
@@ -204,7 +132,7 @@ import os
 import json
 import stumpy
 
-def get_xsim_multi(y_comp_path, y_ref_path, sr=22050, feature="melspectrogram", fft_size=2048, hop_length=2048, k=2, metric="cosine", mode="affinity", gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5, lowcut=180, highcut=3000, norm=False, enhance=False):
+def get_xsim_multi(y_comp_path, y_ref_path, sr=16000, feature="melspectrogram", fft_size=2048, hop_length=2048, k=2, metric="cosine", mode="affinity", gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5, lowcut=180, highcut=3000, norm=False, enhance=False):
     y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
     y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
     y_ref = butter_bandpass_filter(y_ref, lowcut=lowcut, highcut=highcut, sr=sr)
@@ -262,9 +190,7 @@ def get_time_formatted_paths(paths, n_fft=2048, hop_length=1024):
     durs = [(r-p, s-q) for [p, r, q, s] in paths_]
     return paths_, durs
 
-
 import skimage
-from waveprint import spectrogram_to_img_data
 from hog_descriptor import chi2_distance
 
 def get_hog_descriptor(img_data, orientations=8, pixels_per_cell=(16,16), cells_per_block=(1,1), binarize=True):
@@ -280,27 +206,65 @@ def get_hog_descriptor(img_data, orientations=8, pixels_per_cell=(16,16), cells_
         hog = hog > thresh
     return fd, hog
 
-def query(query_filepath, source_dir, sr=16000, n_fft=2048, hop_length=1024, orientations=8, pixels_per_cell=(16,16), cells_per_block=(1,1), verbose=True, no_identity_match=True, k=5, num_paths=5, enhance=True):
+def frobenius_inner_product(a, b):
+    return np.trace(np.matmul(a.T, b))
+
+def frobenius_distance(a, b, norm=True):
+    dist = np.linalg.norm(a - b, "fro")
+    if norm:
+        return dist / np.linalg.norm(a, "fro")
+    else:
+        return dist
+
+def get_path_data(rqa, path):
+    return [float(rqa[i,j]) for (i,j) in path]
+
+def get_path_distance(rqa1, rqa2, path1, path2):
+    a = get_path_data(rqa1, path1)
+    b = get_path_data(rqa2, path2)
+    a, b = sorted([a, b], key=lambda arr: len(arr))
+    pad_len = abs(len(b) - len(a))
+    a = np.pad(a, (0, pad_len), "constant")
+    return distance.cosine(a, b)
+
+def get_path_score(rqa1, rqa2, path1, path2):
+    a = get_path_data(rqa1, path1)
+    b = get_path_data(rqa2, path2)
+    a, b = sorted([a, b], key=lambda arr: len(arr))
+    pad_len = abs(len(b) - len(a))
+    a = np.pad(a, (0, pad_len), "constant")
+    dist = sklearn.metrics.pairwise.cosine_similarity([a], [b])
+    return float(dist[0][0])
+
+def get_rqa_score(ref_rqa, query_rqa):
+    max_ref_rqa = np.max(ref_rqa)
+    max_query_rqa = np.max(query_rqa)
+    return max_query_rqa / max_ref_rqa
+
+def get_rqa_score2(ref_rqa, query_rqa, query_paths, threshold=0.25):
+    max_ref_rqa = np.max(ref_rqa)
+    res = []
+    for path in query_paths:
+        m, n = path[-1]
+        curr_score = float(query_rqa[m,n] / max_ref_rqa)
+        if (curr_score>threshold):
+            res.append(curr_score)
+    return len(res) / len(query_paths)
+
+def query(query_filepath, source_dir, sr=16000, n_fft=2048, hop_length=1024, verbose=True, no_identity_match=True, k=5, num_paths=5, enhance=True):
     matches = {}
     for dirpath, dirnames, filenames in os.walk(source_dir):
         for filename in filenames:
             if filename.endswith(".wav"):
                 ref_filepath = os.path.join(dirpath, filename)
                 if no_identity_match==True and os.path.basename(ref_filepath) != os.path.basename(query_filepath):
-                    #ref_xsim, ref_rqa, ref_paths, _ = get_xsim_multi(ref_filepath, ref_filepath, fft_size=n_fft, hop_length=hop_length, k=k, num_paths=num_paths, enhance=enhance)
+                    ref_xsim, ref_rqa, ref_paths, _ = get_xsim_multi(ref_filepath, ref_filepath, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, num_paths=num_paths, enhance=enhance)
                     print(f"Computing cross-similarity for {os.path.basename(query_filepath)} against {os.path.basename(ref_filepath)}.")
-                    query_xsim, query_rqa, query_paths, _ = get_xsim_multi(ref_filepath, query_filepath, fft_size=n_fft, hop_length=hop_length, k=k, num_paths=num_paths, enhance=enhance)
-                    '''
-                    ref_img_data = spectrogram_to_img_data(ref_xsim, sr)
-                    query_img_data = spectrogram_to_img_data(query_xsim, sr)
-                    ref_fd, ref_hog = get_hog_descriptor(ref_img_data)
-                    query_fd, query_hog = get_hog_descriptor(query_img_data)
-                    score = chi2_distance(ref_fd, query_fd)
-                    print(os.path.basename(ref_filepath), score)
-                    '''
+                    query_xsim, query_rqa, query_paths, _ = get_xsim_multi(ref_filepath, query_filepath, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, num_paths=num_paths, enhance=enhance)
                     paths, _ = get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
-                    for (ref_start, ref_stop, query_start, query_stop) in paths:
+                    for (i, (ref_start, ref_stop, query_start, query_stop)) in enumerate(paths):
                         match = {
+                            "score": get_path_score(ref_rqa, query_rqa, ref_paths[i], query_paths[i]),
                             "queryStart": query_start,
                             "queryStop": query_stop,
                             "referenceStart": ref_start,
@@ -320,16 +284,15 @@ def parse_query_output(query_filepath, query_output):
     keys = list(query_output.keys())
     for (i, v) in enumerate(list(query_output.values())):
         k = keys[i]
+        score = float(np.mean([match["score"] for match in v]))
         query_segs = [[match["queryStart"]*1000, match["queryStop"]*1000] for match in v]
         ref_segs = [[match["referenceStart"]*1000, match["referenceStop"]*1000] for match in v]
-        #match_count = len(ref_segs)
         result[f"results_{i}"] = {
-            #"match_count": match_count,
-            #"match_proportion": match_count / self.numHashes,
+            "score": score,
             "query_file": os.path.basename(query_filepath),
-            "query_segments": query_segs, #np.array(query_segs).astype(float),
+            "query_segments": query_segs,
             "reference_file": os.path.basename(k),
-            "reference_segments": ref_segs #np.array(ref_segs).astype(float)
+            "reference_segments": ref_segs
         }
     return result
 
