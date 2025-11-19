@@ -37,8 +37,9 @@ class TAAT:
             for filename in filenames:
                 if filename.endswith(".wav"):
                     filepath = os.path.join(dirpath, filename)
+                    print(f"Computing cross-similarity for {filename} against itself.")
                     xsim, rqa, paths, _ = get_xsim_multi(filepath, filepath, features=features, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True)
-                    self.data[filename] = get_path_data(rqa, paths[0])
+                    self.data[filename] = [xsim, rqa, paths] #get_path_data(rqa, paths[0])
     
 
     def query(query_filepath, no_identity_match=True, verbose=False):
@@ -54,7 +55,7 @@ class TAAT:
         for ref_filename in self.data:
             ref_filepath = os.path.join(self.source_dir, ref_filename)
             if no_identity_match==True and ref_filename != os.path.basename(query_filepath):
-                ref_paths = self.data[ref_filename]
+                ref_xsim, ref_rqa, ref_paths = self.data[ref_filename]
                 print(f"Computing cross-similarity for {os.path.basename(query_filepath)} against {ref_filename}.")
                 query_xsim, query_rqa, query_paths, _ = get_xsim_multi(ref_filepath, query_filepath, features=features, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True)
                 paths, _ = get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
