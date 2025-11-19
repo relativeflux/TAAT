@@ -1,10 +1,15 @@
 import math
-import librosa
-import matplotlib.pyplot as plt
+import os
+import json
 import numpy as np
 import scipy.signal as signal
 import scipy.spatial.distance as distance
 import sklearn
+import copy
+import matplotlib.pyplot as plt
+from matplotlib import collections
+import librosa
+import soundfile as sf
 
 
 def butter_bandpass_filter(data, lowcut=180, highcut=3000, sr=16000, order=5):
@@ -14,32 +19,46 @@ def butter_bandpass_filter(data, lowcut=180, highcut=3000, sr=16000, order=5):
     b, a = signal.butter(order, [low, high], btype="band")
     return signal.lfilter(b, a, data)
 
-def stft(y, sr=22050, fft_size=2048, hop_length=1024):
+def stft(y, sr=16000, fft_size=2048, hop_length=1024):
     spect = librosa.stft(y, n_fft=fft_size, hop_length=hop_length)
     return librosa.amplitude_to_db(np.abs(spect), ref=np.max)
 
-def cqt(y, sr=22050, fft_size=2048, hop_length=1024):
+def cqt(y, sr=16000, fft_size=2048, hop_length=1024):
     spect = librosa.cqt(y, sr=sr, hop_length=hop_length)
     return librosa.amplitude_to_db(np.abs(spect), ref=np.max)
 
-def melspectrogram(y, sr=22050, fft_size=2048, hop_length=1024):
+def chroma_cqt(y, sr=16000, fft_size=2048, hop_length=1024):
+    return librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=hop_length)
+
+def melspectrogram(y, sr=16000, fft_size=2048, hop_length=1024):
     mel_spect = librosa.feature.melspectrogram(y=y, sr=sr, n_fft=fft_size, hop_length=hop_length)
     return librosa.amplitude_to_db(mel_spect, ref=np.max)
 
-def mfcc(y, sr=22050, fft_size=2048, hop_length=1024):
+def mfcc(y, sr=16000, fft_size=2048, hop_length=1024):
     return librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13, hop_length=hop_length)
 
-def spectral_centroid(y, sr=22050, fft_size=2048, hop_length=1024):
+def rms(y, sr=16000, fft_size=2048, hop_length=1024):
+    return librosa.feature.rms(y=y, hop_length=hop_length)
+
+def spectral_centroid(y, sr=16000, fft_size=2048, hop_length=1024):
     return librosa.feature.spectral_centroid(y=y, sr=sr, n_fft=fft_size, hop_length=hop_length)
 
-def spectral_bandwidth(y, sr=22050, fft_size=2048, hop_length=1024):
+def spectral_bandwidth(y, sr=16000, fft_size=2048, hop_length=1024):
     return librosa.feature.spectral_bandwidth(y=y, sr=sr, n_fft=fft_size, hop_length=hop_length)
 
-def spectral_contrast(y, sr=22050, fft_size=2048, hop_length=1024):
+def spectral_contrast(y, sr=16000, fft_size=2048, hop_length=1024):
     return librosa.feature.spectral_contrast(y=y, sr=sr, n_fft=fft_size, hop_length=hop_length)
 
-def spectral_flatness(y, sr=22050, fft_size=2048, hop_length=1024):
+def spectral_flatness(y, sr=16000, fft_size=2048, hop_length=1024):
     return librosa.feature.spectral_flatness(y=y, n_fft=fft_size, hop_length=hop_length)
+
+def tempogram(y, sr=16000, fft_size=2048, hop_length=1024):
+    oenv = librosa.onset.onset_strength(y=y, sr=sr, hop_length=hop_length)
+    return librosa.feature.tempogram(onset_envelope=oenv, sr=sr, hop_length=hop_length)
+
+def apply_features(y, features=["melspectrogram", "chroma_cqt"], sr=16000, n_fft=2048, hop_length=1024):
+    feature_data = [args[fname](y, sr=sr, fft_size=n_fft, hop_length=hop_length) for fname in features]
+    return np.vstack(feature_data)
 
 args = locals()
 
@@ -117,7 +136,7 @@ from cross_similarity import get_xsim_multi, plot_xsim_multi, write_path_files
 filepath1 = '../Dropbox/Miscellaneous/TAAT/Data/sg-audio-datasets/02 c-in your image.wav'
 filepath2 = '../Dropbox/Miscellaneous/TAAT/Data/sg-audio-datasets/02 i-no fish.wav'
 
-xsim, rqa, paths, info = get_xsim_multi(filepath1, filepath2, feature='melspectrogram', fft_size=8192, hop_length=8192, k=20, metric='cosine', gap_onset=5, gap_extend=10, knight_moves=True, num_paths=10)
+xsim, rqa, paths, info = get_xsim_multi(filepath1, filepath2, features=['melspectrogram'], fft_size=8192, hop_length=8192, k=20, metric='cosine', gap_onset=5, gap_extend=10, knight_moves=True, num_paths=10)
 
 file_path3 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 4/data/003 Chord composition V (op.8).wav'
 file_path4 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 4/input/023 Daguerreo types, Op. 32B.wav'
@@ -125,23 +144,14 @@ file_path4 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 4/input/023 Dag
 
 ###################################################################
 
-import copy
-from matplotlib import collections
-import soundfile as sf
-import os
-import json
-import stumpy
 
-def get_xsim_multi(y_comp_path, y_ref_path, sr=16000, feature="melspectrogram", fft_size=2048, hop_length=2048, k=2, metric="cosine", mode="affinity", gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5, lowcut=180, highcut=3000, norm=False, enhance=False):
+def get_xsim_multi(y_comp_path, y_ref_path, sr=16000, features=["melspectrogram"], fft_size=2048, hop_length=2048, metric="cosine", k=2, mode="affinity", gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5, lowcut=180, highcut=3000, enhance=False):
     y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
     y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
     y_ref = butter_bandpass_filter(y_ref, lowcut=lowcut, highcut=highcut, sr=sr)
     y_comp = butter_bandpass_filter(y_comp, lowcut=lowcut, highcut=highcut, sr=sr)
-    ref = args[feature](y_ref, sr=sr, fft_size=fft_size, hop_length=hop_length)
-    comp = args[feature](y_comp, sr=sr, fft_size=fft_size, hop_length=hop_length)
-    if norm:
-        ref = stumpy.core.z_norm(ref)
-        comp = stumpy.core.z_norm(comp)
+    ref = apply_features(y_ref, features=features, sr=sr, n_fft=fft_size, hop_length=hop_length)
+    comp = apply_features(y_comp, features=features, sr=sr, n_fft=fft_size, hop_length=hop_length)
     x_ref = librosa.feature.stack_memory(ref, n_steps=10, delay=3)
     x_comp = librosa.feature.stack_memory(comp, n_steps=10, delay=3)
     xsim_orig = librosa.segment.cross_similarity(x_comp, x_ref, k=k, metric=metric, mode=mode)
@@ -159,7 +169,7 @@ def get_xsim_multi(y_comp_path, y_ref_path, sr=16000, feature="melspectrogram", 
         paths.append(rqa[1])
         path_idx += 1
     info = {
-        "feature": feature,
+        "features": features,
         "sample_rate": sr,
         "fft_size": fft_size,
         "hop_length": hop_length,
@@ -190,21 +200,24 @@ def get_time_formatted_paths(paths, n_fft=2048, hop_length=1024):
     durs = [(r-p, s-q) for [p, r, q, s] in paths_]
     return paths_, durs
 
-import skimage
-from hog_descriptor import chi2_distance
+def is_overlapping(start1, end1, start2, end2, margin=2):
+    return (abs(end1-start2) <= margin or abs(end2-start1) <= margin)
 
-def get_hog_descriptor(img_data, orientations=8, pixels_per_cell=(16,16), cells_per_block=(1,1), binarize=True):
-    fd, hog = skimage.feature.hog(img_data,
-        orientations=orientations,
-        pixels_per_cell=pixels_per_cell,
-        cells_per_block=cells_per_block,
-        visualize=True,
-        channel_axis=-1,
-    )
-    if binarize:
-        thresh = skimage.filters.threshold_otsu(hog)
-        hog = hog > thresh
-    return fd, hog
+def merge_matches(matches, margin=2):
+    result = [matches[0]]
+    for head in matches[1:]:
+        tail = result[-1]
+        if (is_overlapping(tail[0], tail[1], head[0], head[1], margin) and
+            is_overlapping(tail[2], tail[3], head[2], head[3]), margin):
+                result[-1] = [
+                    min(tail[0], head[0]),
+                    max(tail[1], head[1]),
+                    min(tail[2], head[2]),
+                    max(tail[3], head[3])
+                ]
+        else:
+            result.append(head)
+    return result
 
 def frobenius_inner_product(a, b):
     return np.trace(np.matmul(a.T, b))
@@ -225,7 +238,7 @@ def get_path_distance(rqa1, rqa2, path1, path2):
     a, b = sorted([a, b], key=lambda arr: len(arr))
     pad_len = abs(len(b) - len(a))
     a = np.pad(a, (0, pad_len), "constant")
-    return distance.cosine(a, b)
+    return float(distance.cosine(a, b))
 
 def get_path_score(rqa1, rqa2, path1, path2):
     a = get_path_data(rqa1, path1)
@@ -235,6 +248,11 @@ def get_path_score(rqa1, rqa2, path1, path2):
     a = np.pad(a, (0, pad_len), "constant")
     dist = sklearn.metrics.pairwise.cosine_similarity([a], [b])
     return float(dist[0][0])
+
+def get_normalized_score(rqa, path):
+    m, n = path[-1]
+    score = rqa[m, n]
+    return score / len(path)
 
 def get_rqa_score(ref_rqa, query_rqa):
     max_ref_rqa = np.max(ref_rqa)
@@ -264,7 +282,10 @@ def query(query_filepath, source_dir, sr=16000, n_fft=2048, hop_length=1024, ver
                     paths, _ = get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
                     for (i, (ref_start, ref_stop, query_start, query_stop)) in enumerate(paths):
                         match = {
-                            "score": get_path_score(ref_rqa, query_rqa, ref_paths[i], query_paths[i]),
+                            "score": {
+                                "path_score": get_path_score(ref_rqa, query_rqa, ref_paths[i], query_paths[i]),
+                                "norm_score": get_normalized_score(query_rqa, query_paths[0])
+                            },
                             "queryStart": query_start,
                             "queryStop": query_stop,
                             "referenceStart": ref_start,
@@ -284,11 +305,12 @@ def parse_query_output(query_filepath, query_output):
     keys = list(query_output.keys())
     for (i, v) in enumerate(list(query_output.values())):
         k = keys[i]
-        score = float(np.mean([match["score"] for match in v]))
+        #score = float(np.mean([match["score"] for match in v]))
+        scores = [match["score"] for match in v]
         query_segs = [[match["queryStart"]*1000, match["queryStop"]*1000] for match in v]
         ref_segs = [[match["referenceStart"]*1000, match["referenceStop"]*1000] for match in v]
         result[f"results_{i}"] = {
-            "score": score,
+            "score": scores[0], #score,
             "query_file": os.path.basename(query_filepath),
             "query_segments": query_segs,
             "reference_file": os.path.basename(k),
@@ -330,7 +352,7 @@ def plot_xsim_parallel_coordinates(csv):
     df = pd.read_csv(csv)
     plt.figure()
     pd.plotting.parallel_coordinates(
-        df[["feature", "sample_rate", "fft_size", "hop_length", "k", "metric", "num_paths", "gap_onset", "gap_extend", "knight_moves", "path_length"]], "feature")
+        df[["features", "sample_rate", "fft_size", "hop_length", "k", "metric", "num_paths", "gap_onset", "gap_extend", "knight_moves", "path_length"]], "features")
     plt.show()
 '''
 
@@ -365,7 +387,7 @@ def test_xsim_multi(y_comp_path, y_ref_path, n=10, sr=16000, k_range=[2,20]):
         metric = random.choice(metrics)
         k = random.randint(k_range[0], k_range[1])
         knight_moves = random.choice([True, False])
-        _, _, _, info = get_xsim_multi(y_comp_path, y_ref_path, sr=sr, feature=feature, fft_size=fft_size, hop_length=fft_size, metric=metric, k=k, knight_moves=knight_moves, num_paths=1)
+        _, _, _, info = get_xsim_multi(y_comp_path, y_ref_path, sr=sr, features=[feature], fft_size=fft_size, hop_length=fft_size, metric=metric, k=k, knight_moves=knight_moves, num_paths=1)
         info["feature"] = features.index(feature)
         info["metric"] = metrics.index(metric)
         infos.append(info)
@@ -410,103 +432,3 @@ def write_path_files(outdir, score, paths, y_ref_path, y_comp_path, sr, info):
         start1, end1, start2, end2 = start_end_pair
         write_path_file(outdir, y_ref_path, f"y_ref_{i}", start1, end1, sr)
         write_path_file(outdir, y_comp_path, f"y_comp_{i}", start2, end2, sr)
-
-def match_xsim_multi(paths, timings_file, diff=5):
-    paths = sorted(paths)
-    with open(timings_file) as f:
-        content = json.load(f)
-    timings = content['data']
-    result = {}
-    for i in range(0, len(timings)):
-        result[i] = None
-    for (i, [[a,b],[c,d]]) in enumerate(timings):
-        for [aa,bb,cc,dd] in paths:
-            diff_a = abs(a-aa)
-            diff_b = abs(b-bb)
-            diff_c = abs(c-cc)
-            diff_d = abs(d-dd)
-            if (diff_a<=diff and diff_b<=diff
-                and diff_c<=diff and diff_d<=diff):
-                result[i] = [aa,bb,cc,dd]
-    return result
-
-def match_xsim_multi2(paths, timings_file, diff=5):
-    with open(timings_file) as f:
-        content = json.load(f)
-    timings = content['data']
-    result = {}
-    for i in range(0, len(timings)):
-        result[i] = None
-    for (i, [[a,b],[c,d]]) in enumerate(timings):
-        for [aa,bb,cc,dd] in paths:
-            if result[i]:
-                [aaa,bbb,ccc,ddd] = result[i]
-                diff_a = aaa-aa
-                diff_b = bbb-bb
-                diff_c = ccc-cc
-                diff_d = ddd-dd
-                if (diff_a<diff and diff_b<diff
-                    and diff_c<diff and diff_d<diff):
-                    result[i] = [aa,bb,cc,dd]
-            else:
-                diff_a = abs(a-aa)
-                diff_b = abs(b-bb)
-                diff_c = abs(c-cc)
-                diff_d = abs(d-dd)
-                if (diff_a<=diff and diff_b<=diff
-                    and diff_c<=diff and diff_d<=diff):
-                    result[i] = [aa,bb,cc,dd]
-    return result
-
-
-def match_xsim_multi3(paths, timings_file):
-    with open(timings_file) as f:
-        content = json.load(f)
-    timings = content['data']
-    result = {}
-    for i in range(0, len(timings)):
-        result[i] = None
-    for (i, [[a,b],[c,d]]) in enumerate(timings):
-        candidate = None
-        for [aa,bb,cc,dd] in paths:
-            if not candidate:
-                candidate = [aa, bb, cc, dd]
-            else:
-                if abs(a-aa)<abs(a-candidate[0]) and abs(b-bb)<abs(b-candidate[1]) \
-                   and abs(c-cc)<abs(c-candidate[2]) and abs(d-dd)<abs(d-candidate[3]):
-                   candidate = [aa,bb,cc,dd]
-        result[i] = candidate
-    return result
-
-def match_xsim_multi4(paths, timings_file, diff=5):
-    paths = sorted(paths)
-    with open(timings_file) as f:
-        content = json.load(f)
-    timings = content['data']
-    result = []
-    for [[a,b],[c,d]] in timings:
-        candidate = paths[0]
-        for [aa,bb,cc,dd] in paths[1:]:
-            if (abs(a-candidate[0]) <= diff) and (abs(b-candidate[1]) <= diff) and (abs(c-candidate[2]) <= diff) and (abs(d-candidate[3]) <= diff):
-                candidate = [aa,bb,cc,dd]
-            #else:
-                #candidate = None
-        result.append(candidate)
-    return result
-
-def match_xsim_multi5(paths, timings_file, diff=5):
-    with open(timings_file) as f:
-        content = json.load(f)
-    timings = content['data']
-    result = {}
-    for i in range(0, len(timings)):
-        result[i] = None
-    for (i, [[a,b],[c,d]]) in enumerate(timings):
-        for [aa,bb,cc,dd] in paths:
-            diff_a = abs(a-aa)
-            diff_b = abs(b-bb)
-            if (diff_a<=diff and diff_b<=diff):
-                result[i] = [aa,bb,cc,dd]
-    return result
-
-
