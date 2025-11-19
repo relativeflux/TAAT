@@ -21,7 +21,7 @@ class TAAT:
         self.k = k
         self.metric = metric
         self.num_paths = num_paths
-        self.path_data = {}
+        self.data = {}
 
 
     def store(self):
@@ -42,7 +42,7 @@ class TAAT:
                     self.data[filename] = [xsim, rqa, paths] #get_path_data(rqa, paths[0])
     
 
-    def query(query_filepath, no_identity_match=True, verbose=False):
+    def query(self, query_filepath, no_identity_match=True, verbose=False):
         features = self.features
         sr = self.sr
         n_fft = self.n_fft
