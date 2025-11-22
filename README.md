@@ -32,47 +32,46 @@ To install dependencies use the `requirements.txt` file, as follows:
 
 TBC
 
-#### Other dependencies
+#### Overview
 
-The Olaf audio fingerprinting library needs to be compiled - find instructions [here](https://github.com/JorenSix/Olaf?tab=readme-ov-file#compilation). You will also need to build the [Olaf Python wrapper](https://github.com/JorenSix/Olaf/blob/master/python-wrapper/README.textile), which creates the Olaf shared C library.
-
-Once you have built these you will need to copy certain resources from the Olaf top-level folder to the top-level folder of the TAAT repository:
-
-- The `bin` folder containing `libolaf.so` (the Olaf shared C library).
-- The`olaf_cffi.*.so` shared library (where `*` indicates platform identifier text).
-
-You will also need to set the `LD_LIBRARY_PATH` environment variable (Linux- or Mac-specific command provided below):
-
-`export LD_LIBRARY_PATH=/path/to/TAAT/bin`
+TBC
 
 ### API
 
-**store(_path_)**
+**store(_source_dir, features=["melspectrogram"], sr=16000, n_fft=2048, hop_length=1024, k=5, metric="cosine", num_paths=5_)**
 
-Stores extracted fingerprints from an audio file in the database.
-
-Audio is decoded and resampled using ffmpeg, so ffmpeg needs to be available on your system in order for it to work.
+Stores extracted cross-similarity data from a folder of audio files in the database.
 
 | Parameter Name  | Description    |
 | :-------------- | :------------- |
-| **_path : string_**             | Path to the file, or folder of files, whose fingerprints will be extracted and stored in the database.  |
+| **_source_dir : string_**             | Path to the folder of files whose cross-similarity data will be stored in the database.  |
+| **_features : list of strings_**             | List of features to extract in the analysis. Available features are: stft, melspectrogram, chroma_cqt, mfcc, rms, tempogram, spectral_centroid, spectral_flatness, spectral_bandwidth and spectral_contrast. |
+| **_sr : int>0_**             | Sample rate for the audio loaded for the analysis.  |
+| **_n_fft : int>0_**             | FFT analysis frame size.  |
+| **_hop_length : int>0_**             | FFT analysis hop length.  |
+| **_k : int>0_**             | Number of nearest-neighbours to compute for each analysis sample.  |
+| **_metric : string_**             | Distance metric to use for the cross-similarity analysis.  |
+| **_num_paths : int>0_**             | Number of RQA paths to compute.  |
 
-**stats()**
+**stats(_verbose=False_)**
 
 Get statistics on the database.
 
-**query(_path, no_identity_match=True, prune_below=0.2, group_by_path=True_)**
+| Parameter Name  | Description    |
+| :-------------- | :------------- |
+| **_verbose : bool_**             | Whether or not to return stats in verbose format.  |
 
-Extracts fingerprints from the supplied audio files and attempts to matche them with what is stored in the database.
+**query(_query_path, no_identity_match=True, verbose=False_)**
+
+Extracts fingerprints from the supplied audio files and attempts to match them with what is stored in the database.
 
 | Parameter Name    | Description   |
 | :-----------------| :------------ |
-| **_path : string_** | Path to the file to be queried against the database.  |
+| **_query_path : string_** | Path to the file to be queried against the database.  |
 | **_no_identity_match : bool_**  | Whether or not to include the queried file in the result, if it is itself already stored in the database.  |
-| **_prune_below : float>0.0<1.0,scalar>0_**  | Matches below this value will be excluded from the result. Accepts either a value between 0.0 and 1.0 (inclusive), in which case the value is interpreted as a percentage of the total match count, or a scalar greater than 0, in which case the value is interpreted as being absolute. |
-| **_group_by_path_** | Whether or not to group matches under the same path together. |
+| **_verbose : bool_** | Whether or not to return the result in verbose format. |
 
-**write_match_files(_outdir, query_path, matches, sr=22050_)**
+**write(_outdir, query_path, matches, sr=16000_)**
 
 Write matches to disk as audio files.
 
@@ -80,19 +79,26 @@ Write matches to disk as audio files.
 | :----------------- | :------------- |
 | **_outdir : string_** | Path to the location to store the folder of audio files created.  |
 | **_query_path : string_**  | Path to a file that has been queried against the database.  |
-| **_matches : array_**  | An array of matches resulting from querying the file supplied via **_query_path_**. |
-| **_sr : scalar>0_**  | Audio sample rate.  |
+| **_matches : dict_**  | A dictionary of matches resulting from running a query against an audio file. |
+| **_sr : int>0_**  | Audio sample rate.  |
 
 ### Usage
 
 ```python
-from olaf_api import *
+from taat import store
 
 
-store("path/to/audio/files/to/store")
+FEATURES = ["melspectrogram", "tempogram", "rms", "spectral_centroid"]
 
-query_results = query("path/to/file/to/query.wav")
+taat = store(source_dir="path/to/audio/files/to/store",
+             features=FEATURES,
+             sr=22050,
+             k=7,
+             n_fft=2048,
+             hop_length=1024)
+
+results = taat.query("path/to/file/to/query.wav", verbose=False)
 
 # Write matches as audio files
-write_path_files("path/to/output/folder", "path/to/queried/audio", query_results, sr=44100)
+taat.write("path/to/output/folder", results, sr=22050, format="wav")
 ```

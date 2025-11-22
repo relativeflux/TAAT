@@ -2,13 +2,12 @@ import argparse
 import os
 import glob
 import json
-
+import librosa
 from matplotlib import pyplot as plt
 from scipy.cluster.hierarchy import dendrogram
 
-from audio import load, stream #load_audio
 from features import extract_features
-from clustering import get_clusters, create_tree
+from clustering.clustering import get_clusters, create_tree
 
 
 OUTPUT_DEST = None #"stdout"
@@ -68,7 +67,7 @@ def run(source_folder,
     ext_features = [] #{}
     #for filename in sort_source_files(source_folder):
     for filename in glob.glob(source_folder + '/*'):
-        (_, sr, audio) = load(filename)
+        audio, sr = librosa.load(filename, mono=True)
         samples_per_chunk = sr * chunk_length
         i = 0
         print(f"Extracting features for file {filename}...")

@@ -9,9 +9,11 @@ import soundfile as sf
 from cross_similarity import *
 
 
+FEATURES = ["melspectrogram"]
+
 class TAAT:
 
-    def __init__(self, source_dir, features=["melspectrogram"], sr=16000, n_fft=2048, hop_length=1024, k=5, metric="cosine", num_paths=5):
+    def __init__(self, source_dir, features=FEATURES, sr=16000, n_fft=2048, hop_length=1024, k=5, metric="cosine", num_paths=5):
 
         self.source_dir = source_dir
         self.features = features
@@ -96,3 +98,8 @@ class TAAT:
                 "reference_segments": ref_segs
             }
         return result
+
+def store(source_dir, features=FEATURES, sr=16000, n_fft=2048, hop_length=1024, k=5, metric="cosine", num_paths=5):
+    taat = TAAT(source_dir=source_dir, features=features, sr=sr, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths)
+    taat.store()
+    return taat
