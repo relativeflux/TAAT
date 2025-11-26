@@ -2,8 +2,6 @@ import os
 from pathlib import Path
 import numpy as np
 import sqlite3
-import copy
-import scipy.signal as signal
 import librosa
 import soundfile as sf
 from cross_similarity import *

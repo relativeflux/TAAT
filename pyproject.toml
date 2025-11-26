@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taat"
+version = "1.0.0"
+authors = [
+  {name = "Christopher Melen", email = "chris_melen@yahoo.com"}
+]
+dependencies = [
+  "numpy",
+  "scipy",
+  "scikit-learn",
+  "pandas",
+  "matplotlib",
+  "plotly[express]",
+  "soundfile",
+  "librosa",
+  "scikit-image"
+]
+readme = "README.md"
+license = "MIT"

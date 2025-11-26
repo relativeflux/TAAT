@@ -10,6 +10,7 @@ env/
 __pycache__
 .ipynb_checkpoints
 pip-selfcheck.json
+*.egg-info/
 
 # Project
 /output/*
