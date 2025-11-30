@@ -34,4 +34,59 @@ TBC
 
 ## Documentation
 
-For comprehensive documentation please see https://relativeflux.github.io/taat/.
+For comprehensive documentation please see https://relativeflux.github.io/TAAT/.
+
+## Basic Usage
+
+The code below provides an example of basic TAAT usage. For more advanced examples see the Tutorials page.
+
+```python
+from taat import query
+
+
+FEATURES = ["melspectrogram", "tempogram", "rms", "spectral_centroid"]
+
+# Run a query. Returns a QueryResult object.
+query_result = query(source_dir="path/to/audio/files/to/query/against",
+                     query_filepath="path/to/file/to/query.wav",
+                     features=FEATURES,
+                     sr=16000,
+                     k=7,
+                     n_fft=2048,
+                     hop_length=1024)
+
+# Pretty-print the result.
+query_result.pprint()
+{'results_0': {'score': 0.3517379236755508,
+               'query_file': '001_End_of_the_World_(op.1)_chunk_7.wav',
+               'query_segments': [[7151.746031746032, 17740.045351473924],
+                                  [7198.185941043084, 17786.485260770973],
+                                  [7151.746031746032, 17693.60544217687],
+                                  [7244.625850340136, 17832.925170068025],
+                                  [6315.827664399093, 16904.126984126986]],
+               'reference_file': '001_End_of_the_World_(op.1)_chunk_1.wav',
+               'reference_segments': [[11192.01814058957, 21780.31746031746],
+                                      [11192.01814058957, 21780.31746031746],
+                                      [11238.45804988662, 21780.31746031746],
+                                      [11192.01814058957, 21780.31746031746],
+                                      [11192.01814058957, 21780.31746031746]]},
+ 'results_1': {'score': 0.45740568618560096,
+               'query_file': '001_End_of_the_World_(op.1)_chunk_7.wav',
+               'query_segments': [[9380.861678004536, 21780.31746031746],
+                                  [8498.503401360544, 21780.31746031746],
+                                  [9427.301587301587, 21780.31746031746],
+                                  [7616.145124716553, 19551.201814058957],
+                                  [7662.585034013605, 19551.201814058957]],
+               'reference_file': '001_End_of_the_World_(op.1)_chunk_2.wav',
+               'reference_segments': [[6037.188208616781, 18436.643990929708],
+                                      [6037.188208616781, 19319.0022675737],
+                                      [6037.188208616781, 18390.20408163265],
+                                      [6037.188208616781, 17972.244897959183],
+                                      [6037.188208616781, 17925.804988662134]]}}
+
+# Export the result as JSON
+query_result.export("path/to/result/file.json")
+
+# Write matches to disk as audio files
+query_result.write("path/to/output/folder")
+```
