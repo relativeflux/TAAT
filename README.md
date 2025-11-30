@@ -90,3 +90,9 @@ query_result.export("path/to/result/file.json")
 # Write matches to disk as audio files
 query_result.write("path/to/output/folder")
 ```
+
+### The taat_interpreter Max patch
+
+We also have a Max patch available, the taat_interpreter (created by Dr Sam Gillies), which allows to load exported JSON output from a query result and display the it as playable audio waveforms:
+
+![image](docs/img/taat_interpreter.png)
