@@ -24,3 +24,4 @@ site/
 *.so
 *.json
 *.png
+!/docs/img/*.png
