@@ -1,5 +1,3 @@
-## Tape Archive Analysis Toolkit
-
 ### Installation
 
 We highly recommend installing into a virtual environment.
@@ -24,7 +22,7 @@ Note the relative path to the `activate` command. When you are done with the vir
 
 #### Install using `pip`
 
-To install taat using pip, from the top-level TAAT directory execute the following:
+To install taat using `pip`, from the top-level TAAT directory execute the following:
 
 `python -m pip install .`
 
@@ -32,6 +30,25 @@ To install taat using pip, from the top-level TAAT directory execute the followi
 
 TBC
 
-## Documentation
+### Basic Usage
 
-For comprehensive documentation please see https://relativeflux.github.io/taat/.
+The code below provides an example of basic TAAT usage. For more advanced examples see the [Tutorials](tutorials.md) page.
+
+```python
+from taat import query
+
+
+FEATURES = ["melspectrogram", "tempogram", "rms", "spectral_centroid"]
+
+# Run a query.
+query_result = query(source_dir="path/to/audio/files/to/query/against",
+                     query_filepath="path/to/file/to/query.wav",
+                     features=FEATURES,
+                     sr=16000,
+                     k=7,
+                     n_fft=2048,
+                     hop_length=1024)
+
+# Write matches to disk as audio files
+query_result.write("path/to/output/folder")
+```

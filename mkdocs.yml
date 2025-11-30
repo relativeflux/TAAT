@@ -1,0 +1,14 @@
+site_name: TAAT
+
+theme:
+  name: "material"
+
+plugins:
+  - mkdocstrings
+
+nav:
+  - index.md
+  - overview.md
+  - user-guide.md
+  - tutorials.md
+  - reference.md
