@@ -87,6 +87,9 @@ query_result.pprint()
 # Export the result as JSON
 query_result.export("path/to/result/file.json")
 
+# Display a plot of the scores
+query_result.plot()
+
 # Write matches to disk as audio files
 query_result.write("path/to/output/folder")
 ```

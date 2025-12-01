@@ -17,7 +17,10 @@ dependencies = [
   "plotly[express]",
   "soundfile",
   "librosa",
-  "scikit-image"
+  "scikit-image",
+  "mkdocs",
+  "mkdocstrings[python]",
+  "mkdocs-material"
 ]
 readme = "README.md"
 license = "MIT"
