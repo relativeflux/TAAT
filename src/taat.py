@@ -161,7 +161,7 @@ def query(source_dir, query_filepath, features=["melspectrogram"], sr=16000, n_f
         matches = {}
         for filename in filenames:
             if filename.endswith(".wav"):
-                if no_identity_match==True and filename != os.path.basename(query_filepath):
+                if (no_identity_match and filename != os.path.basename(query_filepath)) or (not no_identity_match):
                     ref_filepath = os.path.join(dirpath, filename)
                     ref_xsim, ref_rqa, ref_paths, _ = get_xsim_multi(ref_filepath, ref_filepath, features=features, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True)
                     print(f"Computing cross-similarity for {os.path.basename(query_filepath)} against {filename}.")
