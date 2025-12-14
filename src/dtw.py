@@ -2,7 +2,7 @@ import os
 import numpy as np
 import librosa
 import matplotlib.pyplot as plt
-from cross_similarity import butter_bandpass_filter, plot_xsim_multi
+from cross_similarity import butter_bandpass_filter, apply_features, plot_xsim_multi
 
 
 def dtw(filepath1, filepath2, sr=16000, features=["melspectrogram"], n_fft=2048, hop_length=1024, lowcut=180, highcut=3000, enhance=True):
