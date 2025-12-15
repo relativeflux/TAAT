@@ -130,6 +130,9 @@ def run_backend(filepath1, filepath2, backend="cross_similarity", sr=16000, feat
     sim_matrix = False
     rqa = False
     paths = []
+    if os.path.basename(filepath1) != os.path.basename(filepath2):
+        method = "cross similarity" if backend=="cross_similarity" else "DTW"
+        print(f"Computing {method} for {os.path.basename(filepath1)} against {os.path.basename(filepath2)}.")
     if backend=="cross_similarity" or backend=="xsim":
         sim_matrix, rqa, paths, _ = get_xsim_multi(filepath1, filepath2, features=features, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True)
     elif backend=="dtw":
@@ -177,14 +180,7 @@ def query(source_dir, query_filepath, backend="cross_similarity", features=["mel
             if filename.endswith(".wav"):
                 if (no_identity_match and filename != os.path.basename(query_filepath)) or (not no_identity_match):
                     ref_filepath = os.path.join(dirpath, filename)
-                    '''
-                    ref_xsim, ref_rqa, ref_paths, _ = get_xsim_multi(ref_filepath, ref_filepath, features=features, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True)
-                    '''
                     ref_xsim, ref_rqa, ref_paths = run_backend(ref_filepath, ref_filepath, backend=backend, features=features, sr=sr, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True)
-                    print(f"Computing cross-similarity for {os.path.basename(query_filepath)} against {filename}.")
-                    '''
-                    query_xsim, query_rqa, query_paths, _ = get_xsim_multi(ref_filepath, query_filepath, features=features, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True)
-                    '''
                     query_xsim, query_rqa, query_paths = run_backend(ref_filepath, query_filepath, backend=backend, features=features, sr=sr, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True)
                     paths, _ = get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
                     for (i, (ref_start, ref_stop, query_start, query_stop)) in enumerate(paths):
