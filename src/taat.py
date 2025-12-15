@@ -20,7 +20,7 @@ class QueryResult:
         Exports query result data to a file in JSON format.
 
     plot()
-        Stores extracted cross-similarity data from a folder of audio files in the database.
+        Creates and displays a plot of the query result scores.
 
     pprint()
         Pretty prints the query result.
@@ -164,7 +164,7 @@ def query(source_dir, query_filepath, backend="cross_similarity", features=["mel
 
     **_num_paths_ (int), optional**: Number of RQA paths to compute.
 
-    **_no_identity_match_ (bool), optional**: Whether or not to include the queried file in the result, if it is itself already stored in the database.
+    **_no_identity_match_ (bool), optional**: Whether or not to include the queried file in the result, if it is itself already present in the source folder.
 
     Returns
     -------
