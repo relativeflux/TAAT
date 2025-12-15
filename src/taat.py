@@ -6,6 +6,7 @@ import sqlite3
 import librosa
 import soundfile as sf
 from cross_similarity import *
+from dtw import dtw
 
 
 class QueryResult:
@@ -125,7 +126,18 @@ def make_dir_for_file_path(parent_dir, file_path):
         os.makedirs(file_path_dir)
     return file_path_dir
 
-def query(source_dir, query_filepath, features=["melspectrogram"], sr=16000, n_fft=2048, hop_length=1024, k=5, metric="cosine", num_paths=5, no_identity_match=True, verbose=False):
+def run_backend(filepath1, filepath2, backend="cross_similarity", sr=16000, features=["melspectrogram"], n_fft=2048, hop_length=2048, metric="cosine", k=5, mode="affinity", num_paths=5, lowcut=180, highcut=3000, enhance=False):
+    sim_matrix = False
+    rqa = False
+    paths = []
+    if backend=="cross_similarity" or backend=="xsim":
+        sim_matrix, rqa, paths, _ = get_xsim_multi(filepath1, filepath2, features=features, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True)
+    elif backend=="dtw":
+        sim_matrix, rqa, paths = dtw(filepath1, filepath2, features=features, n_fft=n_fft, hop_length=hop_length, lowcut=lowcut, highcut=highcut, enhance=True)
+    return sim_matrix, rqa, paths
+
+
+def query(source_dir, query_filepath, backend="cross_similarity", features=["melspectrogram"], sr=16000, n_fft=2048, hop_length=1024, k=5, metric="cosine", num_paths=5, no_identity_match=True, verbose=False):
     """
     Extracts feature data from the audio file supplied in _query_filepath_ and attempts to match it using cross-similarity scores with the audio files supplied in _source_dir_.
 
@@ -163,9 +175,15 @@ def query(source_dir, query_filepath, features=["melspectrogram"], sr=16000, n_f
             if filename.endswith(".wav"):
                 if (no_identity_match and filename != os.path.basename(query_filepath)) or (not no_identity_match):
                     ref_filepath = os.path.join(dirpath, filename)
+                    '''
                     ref_xsim, ref_rqa, ref_paths, _ = get_xsim_multi(ref_filepath, ref_filepath, features=features, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True)
+                    '''
+                    ref_xsim, ref_rqa, ref_paths = run_backend(ref_filepath, ref_filepath, backend=backend, features=features, sr=sr, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True)
                     print(f"Computing cross-similarity for {os.path.basename(query_filepath)} against {filename}.")
+                    '''
                     query_xsim, query_rqa, query_paths, _ = get_xsim_multi(ref_filepath, query_filepath, features=features, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True)
+                    '''
+                    query_xsim, query_rqa, query_paths = run_backend(ref_filepath, query_filepath, backend=backend, features=features, sr=sr, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True)
                     paths, _ = get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
                     for (i, (ref_start, ref_stop, query_start, query_stop)) in enumerate(paths):
                         match = {
