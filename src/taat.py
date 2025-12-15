@@ -148,6 +148,8 @@ def query(source_dir, query_filepath, backend="cross_similarity", features=["mel
 
     **_query_filepath_ (str)**: Path to the file to be queried against _source_dir_.
 
+    **_backend_ (str)**: Set to one of 'cross_similarity' or 'dtw' (dynamic time warping).
+
     **_features_ (list[str]), optional**: List of features to extract in the analysis. Available features are: stft, melspectrogram, chroma_cqt, mfcc, rms, tempogram, spectral_centroid, spectral_flatness, spectral_bandwidth and spectral_contrast.
 
     **_sr_ (int), optional**: Sample rate for the audio loaded for the analysis.
