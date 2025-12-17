@@ -735,7 +735,7 @@
 <p>export(output_filepath)
     Exports query result data to a file in JSON format.</p>
 <p>plot()
-    Stores extracted cross-similarity data from a folder of audio files in the database.</p>
+    Creates and displays a plot of the query result scores.</p>
 <p>pprint()
     Pretty prints the query result.</p>
 <p>write(outdir, format='wav')
@@ -750,8 +750,7 @@
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>src/taat.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 11</span>
-<span class="normal"> 12</span>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 12</span>
 <span class="normal"> 13</span>
 <span class="normal"> 14</span>
 <span class="normal"> 15</span>
@@ -856,7 +855,8 @@
 <span class="normal">114</span>
 <span class="normal">115</span>
 <span class="normal">116</span>
-<span class="normal">117</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">QueryResult</span><span class="p">:</span>
+<span class="normal">117</span>
+<span class="normal">118</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">QueryResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    TAAT QueryResult class. Instances of this class are not intended to be created directly, instead they are created and returned by the TAAT _query_ function (see below).</span>
 
@@ -867,7 +867,7 @@
 <span class="sd">        Exports query result data to a file in JSON format.</span>
 
 <span class="sd">    plot()</span>
-<span class="sd">        Stores extracted cross-similarity data from a folder of audio files in the database.</span>
+<span class="sd">        Creates and displays a plot of the query result scores.</span>
 
 <span class="sd">    pprint()</span>
 <span class="sd">        Pretty prints the query result.</span>
@@ -997,8 +997,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/taat.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">65</span>
-<span class="normal">66</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">66</span>
 <span class="normal">67</span>
 <span class="normal">68</span>
 <span class="normal">69</span>
@@ -1008,7 +1007,8 @@
 <span class="normal">73</span>
 <span class="normal">74</span>
 <span class="normal">75</span>
-<span class="normal">76</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">export</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_filepath</span><span class="p">):</span>
+<span class="normal">76</span>
+<span class="normal">77</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">export</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_filepath</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Export TAAT query results to a JSON file.</span>
 
@@ -1042,8 +1042,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/taat.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">36</span>
-<span class="normal">37</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">37</span>
 <span class="normal">38</span>
 <span class="normal">39</span>
 <span class="normal">40</span>
@@ -1063,7 +1062,8 @@
 <span class="normal">54</span>
 <span class="normal">55</span>
 <span class="normal">56</span>
-<span class="normal">57</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">57</span>
+<span class="normal">58</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates and displays a plot of the query result scores.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1107,11 +1107,11 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/taat.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">59</span>
-<span class="normal">60</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">60</span>
 <span class="normal">61</span>
 <span class="normal">62</span>
-<span class="normal">63</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pprint</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">63</span>
+<span class="normal">64</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pprint</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Pretty prints the query result.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1141,8 +1141,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/taat.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 78</span>
-<span class="normal"> 79</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 79</span>
 <span class="normal"> 80</span>
 <span class="normal"> 81</span>
 <span class="normal"> 82</span>
@@ -1180,7 +1179,8 @@
 <span class="normal">114</span>
 <span class="normal">115</span>
 <span class="normal">116</span>
-<span class="normal">117</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outdir</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;wav&quot;</span><span class="p">):</span>
+<span class="normal">117</span>
+<span class="normal">118</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outdir</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;wav&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Write matches to disk as audio files.</span>
 
@@ -1239,7 +1239,7 @@
 
 
 <h2 id="taat.query" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">query</span><span class="p">(</span><span class="n">source_dir</span><span class="p">,</span> <span class="n">query_filepath</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;melspectrogram&#39;</span><span class="p">],</span> <span class="n">sr</span><span class="o">=</span><span class="mi">16000</span><span class="p">,</span> <span class="n">n_fft</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">hop_length</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;cosine&#39;</span><span class="p">,</span> <span class="n">num_paths</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">no_identity_match</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">query</span><span class="p">(</span><span class="n">source_dir</span><span class="p">,</span> <span class="n">query_filepath</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s1">&#39;cross_similarity&#39;</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;melspectrogram&#39;</span><span class="p">],</span> <span class="n">sr</span><span class="o">=</span><span class="mi">16000</span><span class="p">,</span> <span class="n">n_fft</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">hop_length</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;cosine&#39;</span><span class="p">,</span> <span class="n">num_paths</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">no_identity_match</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
 
 </h2>
 
@@ -1250,6 +1250,7 @@
 <h4 id="taat.query--parameters">Parameters</h4>
 <p><strong><em>source_dir</em> (str)</strong>: Path to the folder of files whose feature data will be extracted.</p>
 <p><strong><em>query_filepath</em> (str)</strong>: Path to the file to be queried against <em>source_dir</em>.</p>
+<p><strong><em>backend</em> (str)</strong>: Set to one of 'cross_similarity' or 'dtw' (dynamic time warping).</p>
 <p><strong><em>features</em> (list[str]), optional</strong>: List of features to extract in the analysis. Available features are: stft, melspectrogram, chroma_cqt, mfcc, rms, tempogram, spectral_centroid, spectral_flatness, spectral_bandwidth and spectral_contrast.</p>
 <p><strong><em>sr</em> (int), optional</strong>: Sample rate for the audio loaded for the analysis.</p>
 <p><strong><em>n_fft</em> (int), optional</strong>: FFT analysis frame size.</p>
@@ -1257,29 +1258,14 @@
 <p><strong><em>k</em> (int), optional</strong>: Number of nearest-neighbours to compute for each analysis sample.</p>
 <p><strong><em>metric</em> (str), optional</strong>: Distance metric to use for the cross-similarity analysis.</p>
 <p><strong><em>num_paths</em> (int), optional</strong>: Number of RQA paths to compute.</p>
-<p><strong><em>no_identity_match</em> (bool), optional</strong>: Whether or not to include the queried file in the result, if it is itself already stored in the database.</p>
+<p><strong><em>no_identity_match</em> (bool), optional</strong>: Whether or not to include the queried file in the result, if it is itself already present in the source folder.</p>
 <h4 id="taat.query--returns">Returns</h4>
 <p><strong><em>query_result</em> (QueryResult class instance)</strong></p>
 
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/taat.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">128</span>
-<span class="normal">129</span>
-<span class="normal">130</span>
-<span class="normal">131</span>
-<span class="normal">132</span>
-<span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span>
-<span class="normal">137</span>
-<span class="normal">138</span>
-<span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">143</span>
 <span class="normal">144</span>
 <span class="normal">145</span>
 <span class="normal">146</span>
@@ -1336,7 +1322,23 @@
 <span class="normal">197</span>
 <span class="normal">198</span>
 <span class="normal">199</span>
-<span class="normal">200</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">query</span><span class="p">(</span><span class="n">source_dir</span><span class="p">,</span> <span class="n">query_filepath</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;melspectrogram&quot;</span><span class="p">],</span> <span class="n">sr</span><span class="o">=</span><span class="mi">16000</span><span class="p">,</span> <span class="n">n_fft</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">hop_length</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;cosine&quot;</span><span class="p">,</span> <span class="n">num_paths</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">no_identity_match</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">query</span><span class="p">(</span><span class="n">source_dir</span><span class="p">,</span> <span class="n">query_filepath</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;cross_similarity&quot;</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;melspectrogram&quot;</span><span class="p">],</span> <span class="n">sr</span><span class="o">=</span><span class="mi">16000</span><span class="p">,</span> <span class="n">n_fft</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">hop_length</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;cosine&quot;</span><span class="p">,</span> <span class="n">num_paths</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">no_identity_match</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Extracts feature data from the audio file supplied in _query_filepath_ and attempts to match it using cross-similarity scores with the audio files supplied in _source_dir_.</span>
 
@@ -1346,6 +1348,8 @@
 <span class="sd">    **_source_dir_ (str)**: Path to the folder of files whose feature data will be extracted.</span>
 
 <span class="sd">    **_query_filepath_ (str)**: Path to the file to be queried against _source_dir_.</span>
+
+<span class="sd">    **_backend_ (str)**: Set to one of &#39;cross_similarity&#39; or &#39;dtw&#39; (dynamic time warping).</span>
 
 <span class="sd">    **_features_ (list[str]), optional**: List of features to extract in the analysis. Available features are: stft, melspectrogram, chroma_cqt, mfcc, rms, tempogram, spectral_centroid, spectral_flatness, spectral_bandwidth and spectral_contrast.</span>
 
@@ -1361,7 +1365,7 @@
 
 <span class="sd">    **_num_paths_ (int), optional**: Number of RQA paths to compute.</span>
 
-<span class="sd">    **_no_identity_match_ (bool), optional**: Whether or not to include the queried file in the result, if it is itself already stored in the database.</span>
+<span class="sd">    **_no_identity_match_ (bool), optional**: Whether or not to include the queried file in the result, if it is itself already present in the source folder.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1372,11 +1376,10 @@
         <span class="n">matches</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">filename</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.wav&quot;</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">no_identity_match</span><span class="o">==</span><span class="kc">True</span> <span class="ow">and</span> <span class="n">filename</span> <span class="o">!=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">query_filepath</span><span class="p">):</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">no_identity_match</span> <span class="ow">and</span> <span class="n">filename</span> <span class="o">!=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">query_filepath</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="ow">not</span> <span class="n">no_identity_match</span><span class="p">):</span>
                     <span class="n">ref_filepath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dirpath</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
-                    <span class="n">ref_xsim</span><span class="p">,</span> <span class="n">ref_rqa</span><span class="p">,</span> <span class="n">ref_paths</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">get_xsim_multi</span><span class="p">(</span><span class="n">ref_filepath</span><span class="p">,</span> <span class="n">ref_filepath</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="n">features</span><span class="p">,</span> <span class="n">sr</span><span class="o">=</span><span class="n">sr</span><span class="p">,</span> <span class="n">fft_size</span><span class="o">=</span><span class="n">n_fft</span><span class="p">,</span> <span class="n">hop_length</span><span class="o">=</span><span class="n">hop_length</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">num_paths</span><span class="o">=</span><span class="n">num_paths</span><span class="p">,</span> <span class="n">enhance</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Computing cross-similarity for </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">query_filepath</span><span class="p">)</span><span class="si">}</span><span class="s2"> against </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-                    <span class="n">query_xsim</span><span class="p">,</span> <span class="n">query_rqa</span><span class="p">,</span> <span class="n">query_paths</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">get_xsim_multi</span><span class="p">(</span><span class="n">ref_filepath</span><span class="p">,</span> <span class="n">query_filepath</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="n">features</span><span class="p">,</span> <span class="n">sr</span><span class="o">=</span><span class="n">sr</span><span class="p">,</span> <span class="n">fft_size</span><span class="o">=</span><span class="n">n_fft</span><span class="p">,</span> <span class="n">hop_length</span><span class="o">=</span><span class="n">hop_length</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">num_paths</span><span class="o">=</span><span class="n">num_paths</span><span class="p">,</span> <span class="n">enhance</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="n">ref_xsim</span><span class="p">,</span> <span class="n">ref_rqa</span><span class="p">,</span> <span class="n">ref_paths</span> <span class="o">=</span> <span class="n">run_backend</span><span class="p">(</span><span class="n">ref_filepath</span><span class="p">,</span> <span class="n">ref_filepath</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">backend</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="n">features</span><span class="p">,</span> <span class="n">sr</span><span class="o">=</span><span class="n">sr</span><span class="p">,</span> <span class="n">n_fft</span><span class="o">=</span><span class="n">n_fft</span><span class="p">,</span> <span class="n">hop_length</span><span class="o">=</span><span class="n">hop_length</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">num_paths</span><span class="o">=</span><span class="n">num_paths</span><span class="p">,</span> <span class="n">enhance</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="n">query_xsim</span><span class="p">,</span> <span class="n">query_rqa</span><span class="p">,</span> <span class="n">query_paths</span> <span class="o">=</span> <span class="n">run_backend</span><span class="p">(</span><span class="n">ref_filepath</span><span class="p">,</span> <span class="n">query_filepath</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">backend</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="n">features</span><span class="p">,</span> <span class="n">sr</span><span class="o">=</span><span class="n">sr</span><span class="p">,</span> <span class="n">n_fft</span><span class="o">=</span><span class="n">n_fft</span><span class="p">,</span> <span class="n">hop_length</span><span class="o">=</span><span class="n">hop_length</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">num_paths</span><span class="o">=</span><span class="n">num_paths</span><span class="p">,</span> <span class="n">enhance</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                     <span class="n">paths</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">get_time_formatted_paths</span><span class="p">(</span><span class="n">query_paths</span><span class="p">,</span> <span class="n">n_fft</span><span class="o">=</span><span class="n">n_fft</span><span class="p">,</span> <span class="n">hop_length</span><span class="o">=</span><span class="n">hop_length</span><span class="p">)</span>
                     <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">ref_start</span><span class="p">,</span> <span class="n">ref_stop</span><span class="p">,</span> <span class="n">query_start</span><span class="p">,</span> <span class="n">query_stop</span><span class="p">))</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">paths</span><span class="p">):</span>
                         <span class="n">match</span> <span class="o">=</span> <span class="p">{</span>
