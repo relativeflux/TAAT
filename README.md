@@ -1,5 +1,7 @@
 ## Tape Archive Analysis Toolkit
 
+**N.B**: At the present date (17/12/2025) this codebase is still under development, so the version published here should not be considered anything other than experimental.
+
 ### Installation
 
 We highly recommend installing into a virtual environment.
@@ -34,7 +36,7 @@ TBC
 
 ## Documentation
 
-For comprehensive documentation please see https://relativeflux.github.io/TAAT/.
+For comprehensive documentation please see https://relativeflux.github.io/taat/.
 
 ## Basic Usage
 
