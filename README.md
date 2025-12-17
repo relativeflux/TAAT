@@ -36,7 +36,7 @@ TBC
 
 ## Documentation
 
-For comprehensive documentation please see https://relativeflux.github.io/taat/.
+For comprehensive documentation please see https://relativeflux.github.io/TAAT/.
 
 ## Basic Usage
 
