@@ -190,8 +190,8 @@ def get_xsim_multi(y_comp_path, y_ref_path, sr=16000, features=["melspectrogram"
 def get_time_formatted_paths(paths, n_fft=2048, hop_length=1024):
     paths_ = []
     for path in paths:
-        ref_start, query_start = path[0]
-        ref_stop, query_stop = path[-1]
+        query_start, ref_start = path[0]
+        query_stop, ref_stop = path[-1]
         ref_start = float(librosa.frames_to_time(ref_start, n_fft=n_fft, hop_length=hop_length))
         ref_stop = float(librosa.frames_to_time(ref_stop, n_fft=n_fft, hop_length=hop_length))
         query_start = float(librosa.frames_to_time(query_start, n_fft=n_fft, hop_length=hop_length))
