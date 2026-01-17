@@ -52,7 +52,7 @@ from cross_similarity import *
 
 filepath1 = "data/test5/16kHz/chunks/001_End_of_the_World_(op.1)_chunk_1.wav"
 
-xsim, rqa, paths, _ = get_xsim_multi(filepath1, filepath1, features=['melspectrogram', 'rms', 'spectral_centroid'], fft_size=2048, hop_length=1024, k=5, metric='cosine', gap_onset=5, gap_extend=10, num_paths=10, enhance=True)
+xsim, rqa, paths, _ = get_xsim_multi(filepath1, filepath1, features=['melspectrogram', 'rms', 'spectral_centroid'], fft_size=2048, hop_length=1024, k=5, metric='cosine', gap_onset=5, gap_extend=10, n_paths=10, enhance=True)
 
 db = connect2db("data/test5/16kHz/chunks")
 

@@ -133,7 +133,7 @@ from cross_similarity import get_xsim_multi, plot_xsim_multi, write_path_files
 filepath1 = '../Dropbox/Miscellaneous/TAAT/Data/sg-audio-datasets/02 c-in your image.wav'
 filepath2 = '../Dropbox/Miscellaneous/TAAT/Data/sg-audio-datasets/02 i-no fish.wav'
 
-xsim, rqa, paths, info = get_xsim_multi(filepath1, filepath2, features=['melspectrogram'], fft_size=8192, hop_length=8192, k=20, metric='cosine', gap_onset=5, gap_extend=10, knight_moves=True, num_paths=10)
+xsim, rqa, paths, info = get_xsim_multi(filepath1, filepath2, features=['melspectrogram'], fft_size=8192, hop_length=8192, k=20, metric='cosine', gap_onset=5, gap_extend=10, knight_moves=True, n_paths=10)
 
 file_path3 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 4/data/003 Chord composition V (op.8).wav'
 file_path4 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 4/input/023 Daguerreo types, Op. 32B.wav'
@@ -142,7 +142,7 @@ file_path4 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 4/input/023 Dag
 ###################################################################
 
 
-def get_xsim_multi(y_comp_path, y_ref_path, sr=16000, features=["melspectrogram"], fft_size=2048, hop_length=2048, metric="cosine", k=2, mode="affinity", gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5, lowcut=180, highcut=3000, enhance=False, zero_mean=False, n_filters=10):
+def get_xsim_multi(y_comp_path, y_ref_path, sr=16000, features=["melspectrogram"], fft_size=2048, hop_length=2048, metric="cosine", k=2, mode="affinity", gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, n_paths=5, lowcut=180, highcut=3000, enhance=False, zero_mean=False, n_filters=10):
     y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
     y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
     y_ref = butter_bandpass_filter(y_ref, lowcut=lowcut, highcut=highcut, sr=sr)
@@ -159,7 +159,7 @@ def get_xsim_multi(y_comp_path, y_ref_path, sr=16000, features=["melspectrogram"
     paths = []
     paths.append(rqa_orig[1])
     path_idx = 0
-    while path_idx < num_paths-1:
+    while path_idx < n_paths-1:
         for (i, j) in paths[path_idx]:
             xsim_copy[i, j] = 0.0
         rqa = librosa.sequence.rqa(xsim_copy, gap_onset=gap_onset, gap_extend=gap_extend, knight_moves=knight_moves)
@@ -172,7 +172,7 @@ def get_xsim_multi(y_comp_path, y_ref_path, sr=16000, features=["melspectrogram"
         "hop_length": hop_length,
         "k": k,
         "metric": metric,
-        "num_paths": num_paths,
+        "n_paths": n_paths,
         #"gap_onset": gap_onset,
         #"gap_extend": gap_extend,
         "knight_moves": knight_moves,
@@ -266,16 +266,16 @@ def get_rqa_score2(ref_rqa, query_rqa, query_paths, threshold=0.25):
             res.append(curr_score)
     return len(res) / len(query_paths)
 
-def query(query_filepath, source_dir, sr=16000, n_fft=2048, hop_length=1024, verbose=True, no_identity_match=True, k=5, num_paths=5, enhance=True):
+def query(query_filepath, source_dir, sr=16000, n_fft=2048, hop_length=1024, verbose=True, no_identity_match=True, k=5, n_paths=5, enhance=True):
     matches = {}
     for dirpath, dirnames, filenames in os.walk(source_dir):
         for filename in filenames:
             if filename.endswith(".wav"):
                 ref_filepath = os.path.join(dirpath, filename)
                 if no_identity_match==True and os.path.basename(ref_filepath) != os.path.basename(query_filepath):
-                    ref_xsim, ref_rqa, ref_paths, _ = get_xsim_multi(ref_filepath, ref_filepath, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, num_paths=num_paths, enhance=enhance)
+                    ref_xsim, ref_rqa, ref_paths, _ = get_xsim_multi(ref_filepath, ref_filepath, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, n_paths=n_paths, enhance=enhance)
                     print(f"Computing cross-similarity for {os.path.basename(query_filepath)} against {os.path.basename(ref_filepath)}.")
-                    query_xsim, query_rqa, query_paths, _ = get_xsim_multi(ref_filepath, query_filepath, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, num_paths=num_paths, enhance=enhance)
+                    query_xsim, query_rqa, query_paths, _ = get_xsim_multi(ref_filepath, query_filepath, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, n_paths=n_paths, enhance=enhance)
                     paths, _ = get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
                     for (i, (ref_start, ref_stop, query_start, query_stop)) in enumerate(paths):
                         match = {
@@ -353,7 +353,7 @@ def plot_xsim_parallel_coordinates(csv):
     df = pd.read_csv(csv)
     plt.figure()
     pd.plotting.parallel_coordinates(
-        df[["features", "sample_rate", "fft_size", "hop_length", "k", "metric", "num_paths", "gap_onset", "gap_extend", "knight_moves", "path_length"]], "features")
+        df[["features", "sample_rate", "fft_size", "hop_length", "k", "metric", "n_paths", "gap_onset", "gap_extend", "knight_moves", "path_length"]], "features")
     plt.show()
 '''
 
@@ -388,7 +388,7 @@ def test_xsim_multi(y_comp_path, y_ref_path, n=10, sr=16000, k_range=[2,20]):
         metric = random.choice(metrics)
         k = random.randint(k_range[0], k_range[1])
         knight_moves = random.choice([True, False])
-        _, _, _, info = get_xsim_multi(y_comp_path, y_ref_path, sr=sr, features=[feature], fft_size=fft_size, hop_length=fft_size, metric=metric, k=k, knight_moves=knight_moves, num_paths=1)
+        _, _, _, info = get_xsim_multi(y_comp_path, y_ref_path, sr=sr, features=[feature], fft_size=fft_size, hop_length=fft_size, metric=metric, k=k, knight_moves=knight_moves, n_paths=1)
         info["feature"] = features.index(feature)
         info["metric"] = metrics.index(metric)
         infos.append(info)
