@@ -54,6 +54,7 @@ class QueryResult:
                       rotation=45, ha="right", rotation_mode="anchor")
         ax.set_ylabel("Scores")
         ax.set_title(f"Scores for query file '{filename}'")
+        plt.ylim([0, 1])
         plt.tight_layout()
         plt.show()
 
@@ -126,7 +127,7 @@ def make_dir_for_file_path(parent_dir, file_path):
         os.makedirs(file_path_dir)
     return file_path_dir
 
-def run_backend(filepath1, filepath2, backend="cross_similarity", sr=16000, features=["melspectrogram"], n_fft=2048, hop_length=2048, metric="cosine", k=5, mode="affinity", num_paths=5, lowcut=180, highcut=3000, enhance=False):
+def run_backend(filepath1, filepath2, backend="cross_similarity", sr=16000, features=["melspectrogram"], n_fft=2048, hop_length=2048, metric="cosine", k=5, mode="affinity", num_paths=5, lowcut=180, highcut=3000, enhance=False, zero_mean=False, n_filters=10):
     sim_matrix = False
     rqa = False
     paths = []
@@ -134,13 +135,13 @@ def run_backend(filepath1, filepath2, backend="cross_similarity", sr=16000, feat
         method = "cross similarity" if backend=="cross_similarity" else "DTW"
         print(f"Computing {method} for {os.path.basename(filepath1)} against {os.path.basename(filepath2)}.")
     if backend=="cross_similarity" or backend=="xsim":
-        sim_matrix, rqa, paths, _ = get_xsim_multi(filepath1, filepath2, features=features, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True)
+        sim_matrix, rqa, paths, _ = get_xsim_multi(filepath1, filepath2, features=features, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True, zero_mean=zero_mean, n_filters=n_filters)
     elif backend=="dtw":
         sim_matrix, rqa, paths = dtw(filepath1, filepath2, features=features, n_fft=n_fft, hop_length=hop_length, lowcut=lowcut, highcut=highcut, enhance=True)
     return sim_matrix, rqa, paths
 
 
-def query(source_dir, query_filepath, backend="cross_similarity", features=["melspectrogram"], sr=16000, n_fft=2048, hop_length=1024, k=5, metric="cosine", num_paths=5, no_identity_match=True, verbose=False):
+def query(source_dir, query_filepath, backend="cross_similarity", features=["melspectrogram"], sr=16000, n_fft=2048, hop_length=1024, k=5, metric="cosine", num_paths=5, no_identity_match=True, verbose=False, zero_mean=False, n_filters=10):
     """
     Extracts feature data from the audio file supplied in _query_filepath_ and attempts to match it using cross-similarity scores with the audio files supplied in _source_dir_.
 
@@ -153,7 +154,7 @@ def query(source_dir, query_filepath, backend="cross_similarity", features=["mel
 
     **_backend_ (str)**: Set to one of 'cross_similarity' or 'dtw' (dynamic time warping).
 
-    **_features_ (list[str]), optional**: List of features to extract in the analysis. Available features are: stft, melspectrogram, chroma_cqt, mfcc, rms, tempogram, spectral_centroid, spectral_flatness, spectral_bandwidth and spectral_contrast.
+    **_features_ (list[str]), optional**: List of features to extract in the analysis. Available features are: stft, melspectrogram, chroma_cqt, chroma_cens, mfcc, rms, tempogram, spectral_centroid, spectral_flatness, spectral_bandwidth and spectral_contrast.
 
     **_sr_ (int), optional**: Sample rate for the audio loaded for the analysis.
 
@@ -180,8 +181,8 @@ def query(source_dir, query_filepath, backend="cross_similarity", features=["mel
             if filename.endswith(".wav"):
                 if (no_identity_match and filename != os.path.basename(query_filepath)) or (not no_identity_match):
                     ref_filepath = os.path.join(dirpath, filename)
-                    ref_xsim, ref_rqa, ref_paths = run_backend(ref_filepath, ref_filepath, backend=backend, features=features, sr=sr, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True)
-                    query_xsim, query_rqa, query_paths = run_backend(ref_filepath, query_filepath, backend=backend, features=features, sr=sr, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True)
+                    ref_xsim, ref_rqa, ref_paths = run_backend(ref_filepath, ref_filepath, backend=backend, features=features, sr=sr, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True, zero_mean=zero_mean, n_filters=n_filters)
+                    query_xsim, query_rqa, query_paths = run_backend(query_filepath, ref_filepath, backend=backend, features=features, sr=sr, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, num_paths=num_paths, enhance=True, zero_mean=zero_mean, n_filters=n_filters)
                     paths, _ = get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
                     for (i, (ref_start, ref_stop, query_start, query_stop)) in enumerate(paths):
                         match = {

@@ -10,14 +10,8 @@ import matplotlib.pyplot as plt
 from matplotlib import collections
 import librosa
 import soundfile as sf
+from filters import butter_bandpass_filter
 
-
-def butter_bandpass_filter(data, lowcut=180, highcut=3000, sr=16000, order=5):
-    nyquist = 0.5 * sr
-    low = lowcut / nyquist
-    high = highcut / nyquist
-    b, a = signal.butter(order, [low, high], btype="band")
-    return signal.lfilter(b, a, data)
 
 def stft(y, sr=16000, fft_size=2048, hop_length=1024):
     spect = librosa.stft(y, n_fft=fft_size, hop_length=hop_length)
@@ -29,6 +23,9 @@ def cqt(y, sr=16000, fft_size=2048, hop_length=1024):
 
 def chroma_cqt(y, sr=16000, fft_size=2048, hop_length=1024):
     return librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=hop_length)
+
+def chroma_cens(y, sr=16000, fft_size=2048, hop_length=1024):
+    return librosa.feature.chroma_cens(y=y, sr=sr, hop_length=hop_length)
 
 def melspectrogram(y, sr=16000, fft_size=2048, hop_length=1024):
     mel_spect = librosa.feature.melspectrogram(y=y, sr=sr, n_fft=fft_size, hop_length=hop_length)
@@ -145,7 +142,7 @@ file_path4 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 4/input/023 Dag
 ###################################################################
 
 
-def get_xsim_multi(y_comp_path, y_ref_path, sr=16000, features=["melspectrogram"], fft_size=2048, hop_length=2048, metric="cosine", k=2, mode="affinity", gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5, lowcut=180, highcut=3000, enhance=False):
+def get_xsim_multi(y_comp_path, y_ref_path, sr=16000, features=["melspectrogram"], fft_size=2048, hop_length=2048, metric="cosine", k=2, mode="affinity", gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, num_paths=5, lowcut=180, highcut=3000, enhance=False, zero_mean=False, n_filters=10):
     y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
     y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
     y_ref = butter_bandpass_filter(y_ref, lowcut=lowcut, highcut=highcut, sr=sr)
@@ -156,7 +153,7 @@ def get_xsim_multi(y_comp_path, y_ref_path, sr=16000, features=["melspectrogram"
     x_comp = librosa.feature.stack_memory(comp, n_steps=10, delay=3)
     xsim_orig = librosa.segment.cross_similarity(x_comp, x_ref, k=k, metric=metric, mode=mode)
     if enhance:
-        xsim_orig = librosa.segment.path_enhance(xsim_orig, 64, n_filters=10)
+        xsim_orig = librosa.segment.path_enhance(xsim_orig, 64, n_filters=n_filters, zero_mean=zero_mean)
     rqa_orig = librosa.sequence.rqa(xsim_orig, gap_onset=gap_onset, gap_extend=gap_extend, knight_moves=knight_moves)
     xsim_copy = copy.deepcopy(xsim_orig)
     paths = []
@@ -305,12 +302,12 @@ def parse_query_output(query_filepath, query_output):
     keys = list(query_output.keys())
     for (i, v) in enumerate(list(query_output.values())):
         k = keys[i]
-        #score = float(np.mean([match["score"] for match in v]))
-        scores = [match["score"] for match in v]
+        score = float(np.mean([match["score"] for match in v]))
+        #scores = [match["score"] for match in v]
         query_segs = [[match["queryStart"]*1000, match["queryStop"]*1000] for match in v]
         ref_segs = [[match["referenceStart"]*1000, match["referenceStop"]*1000] for match in v]
         result[f"results_{i}"] = {
-            "score": scores[0], #score,
+            "score": score, #scores[0],
             "query_file": os.path.basename(query_filepath),
             "query_segments": query_segs,
             "reference_file": os.path.basename(k),
@@ -326,7 +323,7 @@ def onpick(event):
     points = tuple(zip(xdata[ind], ydata[ind]))
     print('onpick points:', points)
 
-def plot_xsim_multi(xsim, rqa, paths):
+def plot_xsim_multi(xsim, rqa, paths, outfile=False):
     fig, ax = plt.subplots(ncols=2, sharex=True, sharey=True)
     librosa.display.specshow(xsim, x_axis='frames', y_axis='frames', ax=ax[0])
     ax[0].set(title='Cross-similarity matrix')
@@ -335,7 +332,11 @@ def plot_xsim_multi(xsim, rqa, paths):
     for path in paths:
         ax[1].plot(path[:, 1], path[:, 0], color='c', picker=True)
     #fig.canvas.mpl_connect('pick_event', onpick)
-    plt.show(block=False)
+    if outfile:
+        plt.savefig(outfile, format="png")
+        return f"Saved xsim plot to {outfile}..."
+    else:
+        plt.show(block=False)
 
 import pandas as pd
 import io
