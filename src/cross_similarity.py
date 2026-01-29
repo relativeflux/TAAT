@@ -59,9 +59,9 @@ def apply_features(y, features=["melspectrogram", "chroma_cqt"], sr=16000, n_fft
 
 args = locals()
 
-def get_xsim(y_comp, y_ref, sr=16000, feature="melspectrogram", fft_size=2048, hop_length=1024, k=2, metric='euclidean', mode='affinity', gap_onset=np.inf, gap_extend=np.inf, knight_moves=False):
-    ref = args[feature](y_ref, sr=sr, fft_size=fft_size, hop_length=hop_length)
-    comp = args[feature](y_comp, sr=sr, fft_size=fft_size, hop_length=hop_length)
+def get_xsim(y_comp, y_ref, sr=16000, features=["melspectrogram"], fft_size=2048, hop_length=1024, k=2, metric='euclidean', mode='affinity', gap_onset=np.inf, gap_extend=np.inf, knight_moves=False):
+    ref = apply_features(y_ref, features=features, sr=sr, n_fft=fft_size, hop_length=hop_length)
+    comp = apply_features(y_comp, features=features, sr=sr, n_fft=fft_size, hop_length=hop_length)
     x_ref = librosa.feature.stack_memory(ref, n_steps=10, delay=3)
     x_comp = librosa.feature.stack_memory(comp, n_steps=10, delay=3)
     xsim = librosa.segment.cross_similarity(x_comp, x_ref, k=k, metric=metric, mode=mode)
@@ -247,8 +247,7 @@ def get_path_score(rqa1, rqa2, path1, path2):
     return float(dist[0][0])
 
 def get_normalized_score(rqa, path):
-    m, n = path[-1]
-    score = rqa[m, n]
+    score = np.max(rqa)
     return score / len(path)
 
 def get_rqa_score(ref_rqa, query_rqa):
@@ -279,10 +278,8 @@ def query(query_filepath, source_dir, sr=16000, n_fft=2048, hop_length=1024, ver
                     paths, _ = get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
                     for (i, (ref_start, ref_stop, query_start, query_stop)) in enumerate(paths):
                         match = {
-                            "score": {
-                                "path_score": get_path_score(ref_rqa, query_rqa, ref_paths[i], query_paths[i]),
-                                "norm_score": get_normalized_score(query_rqa, query_paths[0])
-                            },
+                            "score": get_path_score(ref_rqa, query_rqa, ref_paths[i], query_paths[i]),
+                            #"score": get_normalized_score(query_rqa, query_paths[0]),
                             "queryStart": query_start,
                             "queryStop": query_stop,
                             "referenceStart": ref_start,

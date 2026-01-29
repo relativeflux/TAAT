@@ -38,8 +38,9 @@ def create_shingleIDset(d):
 
 class XSIMFingerprintExtractor():
 
-    def __init__(self, source_dir, numHashes=64, sr=16000, n_fft=8192, hop_length=8192, k=20, metric="cosine", mode="affinity"):
+    def __init__(self, source_dir, features=["melspectrogram"], numHashes=64, sr=16000, n_fft=8192, hop_length=8192, k=20, metric="cosine", mode="affinity"):
         self.source_dir = source_dir
+        self.features = features
         self.sr = sr
         self.n_fft = n_fft
         self.hop_length = hop_length
@@ -56,13 +57,15 @@ class XSIMFingerprintExtractor():
     def get_xsim_fingerprints(self, filepath1, filepath2):
         sr = self.sr
         n_fft = self.n_fft
+        features = self.features
         hop_length = self.hop_length
         k = self.k
         metric = self.metric
         mode = self.mode
         samples1, _ = librosa.load(filepath1, sr=sr, mono=True)
         samples2, _ = librosa.load(filepath2, sr=sr, mono=True)
-        xsim, _ = get_xsim(samples1, samples2, feature="melspectrogram", fft_size=n_fft, hop_length=hop_length, k=k, metric=metric, mode=mode)
+        xsim, _ = get_xsim(samples1, samples2, features=features, fft_size=n_fft, hop_length=hop_length, k=k, metric=metric, mode=mode)
+        xsim = librosa.segment.path_enhance(xsim, 64, zero_mean=True, n_filters=5)
         xsim_data = get_xsim_img_data(xsim, sr)
         #skimage.io.imsave(f"./imgs/{os.path.basename(filepath1)}.png", xsim_data)
         #xsim_data = trim_value(xsim_data, value=255)
