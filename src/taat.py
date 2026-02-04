@@ -33,6 +33,7 @@ class QueryResult:
         self.query_filepath = query_filepath
         self.info = info
         self.result = result
+        self.matrices = None
 
     def plot(self):
         """
@@ -179,10 +180,19 @@ def query(source_dir, query_filepath, backend="cross_similarity", features=["mel
         matches = {}
         for filename in filenames:
             if filename.endswith(".wav"):
-                if (no_identity_match and filename != os.path.basename(query_filepath)) or (not no_identity_match):
+                if (no_identity_match and filename != os.path.basename(query_filepath)) or \
+                        (not no_identity_match):
                     ref_filepath = os.path.join(dirpath, filename)
-                    ref_xsim, ref_rqa, ref_paths = run_backend(ref_filepath, ref_filepath, backend=backend, features=features, sr=sr, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, n_paths=n_paths, enhance=True, zero_mean=zero_mean, n_filters=n_filters)
-                    query_xsim, query_rqa, query_paths = run_backend(query_filepath, ref_filepath, backend=backend, features=features, sr=sr, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, n_paths=n_paths, enhance=True, zero_mean=zero_mean, n_filters=n_filters)
+                    ref_xsim, ref_rqa, ref_paths = run_backend(ref_filepath, ref_filepath,
+                                                        backend=backend, features=features,
+                                                        sr=sr, n_fft=n_fft, hop_length=hop_length,
+                                                        k=k, metric=metric, n_paths=n_paths,
+                                                        enhance=True, zero_mean=zero_mean, n_filters=n_filters)
+                    query_xsim, query_rqa, query_paths = run_backend(query_filepath, ref_filepath,
+                                                            backend=backend, features=features,
+                                                            sr=sr, n_fft=n_fft, hop_length=hop_length,
+                                                            k=k, metric=metric, n_paths=n_paths,
+                                                            enhance=True, zero_mean=zero_mean, n_filters=n_filters)
                     paths, _ = get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
                     for (i, (ref_start, ref_stop, query_start, query_stop)) in enumerate(paths):
                         match = {
@@ -216,6 +226,24 @@ def query(source_dir, query_filepath, backend="cross_similarity", features=["mel
                                result=parsed_result,
                                info=info)
 
+def parse_query_output(query_filepath, query_output):
+    result = {}
+    keys = list(query_output.keys())
+    for (i, v) in enumerate(list(query_output.values())):
+        k = keys[i]
+        score = float(np.mean([match["score"] for match in v]))
+        #scores = [match["score"] for match in v]
+        query_segs = [[match["queryStart"]*1000, match["queryStop"]*1000] for match in v]
+        ref_segs = [[match["referenceStart"]*1000, match["referenceStop"]*1000] for match in v]
+        result[f"results_{i}"] = {
+            "score": score, #scores[0],
+            "query_file": os.path.basename(query_filepath),
+            "query_segments": query_segs,
+            "reference_file": os.path.basename(k),
+            "reference_segments": ref_segs
+        }
+    return result
+
 def query2(source_dir, query_filepath, chunk_length=30, overlap=0.5,
            features=["melspectrogram"], sr=16000, n_fft=2048, hop_length=1024,
            k=5, metric="cosine", n_paths=5, no_identity_match=True, verbose=False,
@@ -225,20 +253,31 @@ def query2(source_dir, query_filepath, chunk_length=30, overlap=0.5,
         matches = {}
         for filename in filenames:
             if filename.endswith(".wav"):
-                if (no_identity_match and filename != os.path.basename(query_filepath)) or (not no_identity_match):
+                if (no_identity_match and filename != os.path.basename(query_filepath)) or \
+                        (not no_identity_match):
                     ref_filepath = os.path.join(dirpath, filename)
                     ref_file_dur = int(librosa.get_duration(path=ref_filepath))
-                    for (ref_idx, ref_offset) in enumerate(range(0, math.floor(ref_file_dur-chunk_length), int(chunk_length * overlap))):
+                    overlap_secs = int(chunk_length * overlap)
+                    for (ref_idx, ref_offset) in enumerate(range(0, math.floor(ref_file_dur-overlap_secs), overlap_secs)):
                         ref_chunk, _ = librosa.load(ref_filepath, sr=sr, mono=True, offset=ref_offset, duration=chunk_length)
-                        ref_xsim, ref_rqa, ref_paths, _ = get_xsim_multi(ref_chunk, ref_chunk, features=features, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, metric=metric, n_paths=n_paths, enhance=True, zero_mean=zero_mean, n_filters=n_filters)
-                        for (query_idx, query_offset) in enumerate(range(0, math.floor(query_file_dur-chunk_length), int(chunk_length * overlap))):
+                        ref_xsim, ref_rqa, ref_paths, _ = get_xsim_multi2(ref_chunk, ref_chunk,
+                                                            features=features, sr=sr,
+                                                            fft_size=n_fft, hop_length=hop_length,
+                                                            k=k, metric=metric, n_paths=n_paths,
+                                                            enhance=True, zero_mean=zero_mean, n_filters=n_filters)
+                        print("")
+                        for (query_idx, query_offset) in enumerate(range(0, math.floor(query_file_dur-overlap_secs), overlap_secs)):
                             query_chunk, _ = librosa.load(query_filepath, sr=sr, mono=True, offset=query_offset, duration=chunk_length)
-                            print(f"Computing cross-similarity for {os.path.basename(query_filepath)} chunk {query_idx} against {os.path.basename(ref_filepath)} chunk_{ref_idx}.")
-                            query_xsim, query_rqa, query_paths, _ = get_xsim_multi(query_chunk, ref_chunk, features=features, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, metric=metric, n_paths=n_paths, enhance=True, zero_mean=zero_mean, n_filters=n_filters)
+                            print(f"Computing cross-similarity for {os.path.basename(query_filepath)} chunk_{query_idx} against {os.path.basename(ref_filepath)} chunk_{ref_idx}.")
+                            query_xsim, query_rqa, query_paths, _ = get_xsim_multi2(query_chunk, ref_chunk,
+                                                                        features=features, sr=sr,
+                                                                        fft_size=n_fft, hop_length=hop_length,
+                                                                        k=k, metric=metric, n_paths=n_paths,
+                                                                        enhance=True, zero_mean=zero_mean, n_filters=n_filters)
                             paths, _ = get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
                             for (i, (ref_start, ref_stop, query_start, query_stop)) in enumerate(paths):
                                 match = {
-                                    "query_file": os.path.basename(query_filepath),
+                                    "query_file": f"{os.path.basename(query_filepath)} chunk_{query_idx}",
                                     "score": get_path_score(ref_rqa, query_rqa, ref_paths[i], query_paths[i]),
                                     "queryStart": query_start,
                                     "queryStop": query_stop,
@@ -265,15 +304,25 @@ def query2(source_dir, query_filepath, chunk_length=30, overlap=0.5,
                                info=info)
         else:
             parsed_result = parse_query_output2(query_filepath, matches, n_paths)
-            return QueryResult(query_filepath=query_filepath,
-                               result=parsed_result,
-                               info=info)
+            mm = get_score_matrices(source_dir=source_dir,
+                                    query_filepath=query_filepath,
+                                    data=parsed_result.values(),
+                                    chunk_length=chunk_length,
+                                    overlap=overlap,
+                                    dim=[query_idx+1, ref_idx+1],
+                                    no_identity_match=no_identity_match)
+            qr = QueryResult(query_filepath=query_filepath,
+                             result=parsed_result,
+                             info=info)
+            qr.matrices = mm
+            return qr
 
-def parse_query_output2(query_filename, query_output, n_paths):
+def parse_query_output2(query_filepath, query_output, n_paths):
     temp = []
+    query_filename = os.path.basename(query_filepath)
     for i, (key, entry) in enumerate(query_output.items()):
         for j in range(0, int(len(entry)/n_paths)):
-            val = f"{query_filename}_chunk_{j}"
+            val = f"{query_filename} chunk_{j}"
             filtered = list(filter(lambda x: "query_file" in x and x["query_file"]==val, entry))
             score = float(np.mean([d["score"] for d in filtered]))
             query_segs = [[d["queryStart"]*1000, d["queryStop"]*1000] for d in filtered]
@@ -290,7 +339,63 @@ def parse_query_output2(query_filename, query_output, n_paths):
         results[f"results_{k}"] = entry
     return results
 
-def get_n_chunks(filepath, chunk_length, overlap):
-    dur = librosa.get_duration(path=filepath)
-    return dur // chunk_length // overlap
+def get_score_matrix(data, dim):
+    matrix = np.zeros(dim)
+    for d in data:
+        query_idx = int(d["query_file"].split(" chunk_")[-1])
+        ref_idx = int(d["reference_file"].split(" chunk_")[-1])
+        matrix[query_idx, ref_idx] = d["score"]
+    return matrix
+
+def get_score_matrices(source_dir, query_filepath, data, chunk_length,
+                       overlap, dim, no_identity_match=True):
+    result = {}
+    query_filename = os.path.basename(query_filepath)
+    for dirpath, dirnames, filenames in os.walk(source_dir):
+        for filename in filenames:
+            if filename.endswith(".wav"):
+                if (no_identity_match and filename != query_filename) or (not no_identity_match):
+                    ref_filepath = os.path.join(dirpath, filename)
+                    f = list(filter(lambda x: os.path.basename(x["reference_file"].split(" chunk_")[0])==filename, data))
+                    m = get_score_matrix(f, dim)
+                    result[f"{source_dir}/{filename}"] = m
+    return result
+
+def onpick(event, matrix):
+    x = int(np.round(event.xdata))
+    y = int(np.round(event.ydata))
+    ax = event.inaxes
+    subfig = ax.get_figure()
+    suptitle = subfig.get_suptitle()
+    print(suptitle)
+    suptitle = suptitle.split("Reference file: ")[-1].split("'")[1]
+    title = ax.get_title()
+    print(f"Matrix:, {title}")
+    score = matrix[suptitle][x, y]
+    print(f"Score for matrix coords {[x, y]}: {score}")
+
+def plot_matrices(filepath, mm):
+    if mm:
+        keys = list(mm.keys())
+        fig, axs = plt.subplots(nrows=len(mm), ncols=1, constrained_layout=True)
+        plt.suptitle(f"Alignment scores for query file '{filepath}'")
+        for ax in axs:
+            ax.remove()
+        gridspec = axs[0].get_subplotspec().get_gridspec()
+        subfigs = [fig.add_subfigure(spec) for spec in gridspec]
+        current_title = ""
+        for row, subfig in enumerate(subfigs):
+            m = mm[keys[row]]
+            rqa, path = librosa.sequence.rqa(m, gap_onset=5, gap_extend=10)
+            subfig.suptitle(f"Reference file: '{keys[row]}'")
+            current_title = keys[row]
+            ax = subfig.subplots(nrows=1, ncols=2)
+            librosa.display.specshow(m, x_axis="frames", y_axis="frames", ax=ax[0])
+            ax[0].set(title="Cross-similarity matrix")
+            librosa.display.specshow(rqa, x_axis="frames", y_axis=f"frames", ax=ax[1])
+            ax[1].set(title="Alignment score matrix")
+            ax[1].plot(path[:, 1], path[:, 0], color="c")
+            fig.canvas.current_title = row #current_title
+        fig.canvas.mpl_connect("button_press_event", lambda e: onpick(e, mm))
+        plt.show()
 

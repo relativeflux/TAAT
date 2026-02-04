@@ -141,10 +141,54 @@ file_path4 = '../Dropbox/Miscellaneous/TAAT/Data/Test Cases/Test 4/input/023 Dag
 
 ###################################################################
 
-
-def get_xsim_multi(y_comp_path, y_ref_path, sr=16000, features=["melspectrogram"], fft_size=2048, hop_length=2048, metric="cosine", k=2, mode="affinity", gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, n_paths=5, lowcut=180, highcut=3000, enhance=False, zero_mean=False, n_filters=10):
+def get_xsim_multi(y_comp_path, y_ref_path, sr=16000, features=["melspectrogram"],
+                   fft_size=2048, hop_length=2048, metric="cosine", k=2, mode="affinity",
+                   gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, n_paths=5,
+                   lowcut=180, highcut=3000, enhance=False, zero_mean=False, n_filters=10):
     y_ref, _ = librosa.load(y_ref_path, sr=sr, mono=True)
     y_comp, _ = librosa.load(y_comp_path, sr=sr, mono=True)
+    y_ref = butter_bandpass_filter(y_ref, lowcut=lowcut, highcut=highcut, sr=sr)
+    y_comp = butter_bandpass_filter(y_comp, lowcut=lowcut, highcut=highcut, sr=sr)
+    ref = apply_features(y_ref, features=features, sr=sr, n_fft=fft_size, hop_length=hop_length)
+    comp = apply_features(y_comp, features=features, sr=sr, n_fft=fft_size, hop_length=hop_length)
+    x_ref = librosa.feature.stack_memory(ref, n_steps=10, delay=3)
+    x_comp = librosa.feature.stack_memory(comp, n_steps=10, delay=3)
+    xsim_orig = librosa.segment.cross_similarity(x_comp, x_ref, k=k, metric=metric, mode=mode)
+    if enhance:
+        xsim_orig = librosa.segment.path_enhance(xsim_orig, 64, n_filters=n_filters, zero_mean=zero_mean)
+    rqa_orig = librosa.sequence.rqa(xsim_orig, gap_onset=gap_onset, gap_extend=gap_extend, knight_moves=knight_moves)
+    xsim_copy = copy.deepcopy(xsim_orig)
+    paths = []
+    paths.append(rqa_orig[1])
+    path_idx = 0
+    while path_idx < n_paths-1:
+        for (i, j) in paths[path_idx]:
+            xsim_copy[i, j] = 0.0
+        rqa = librosa.sequence.rqa(xsim_copy, gap_onset=gap_onset, gap_extend=gap_extend, knight_moves=knight_moves)
+        paths.append(rqa[1])
+        path_idx += 1
+    info = {
+        "features": features,
+        "sample_rate": sr,
+        "fft_size": fft_size,
+        "hop_length": hop_length,
+        "k": k,
+        "metric": metric,
+        "n_paths": n_paths,
+        #"gap_onset": gap_onset,
+        #"gap_extend": gap_extend,
+        "knight_moves": knight_moves,
+        #"z_normed": norm,
+        #"y_ref_path": y_ref_path,
+        #"y_comp_path": y_comp_path,
+        "path_length": len(paths[0])
+    }
+    return xsim_orig, rqa_orig[0], paths, info
+
+def get_xsim_multi2(y_ref, y_comp, sr=16000, features=["melspectrogram"],
+                    fft_size=2048, hop_length=2048, metric="cosine", k=2, mode="affinity",
+                    gap_onset=np.inf, gap_extend=np.inf, knight_moves=False, n_paths=5,
+                    lowcut=180, highcut=3000, enhance=False, zero_mean=False, n_filters=10):
     y_ref = butter_bandpass_filter(y_ref, lowcut=lowcut, highcut=highcut, sr=sr)
     y_comp = butter_bandpass_filter(y_comp, lowcut=lowcut, highcut=highcut, sr=sr)
     ref = apply_features(y_ref, features=features, sr=sr, n_fft=fft_size, hop_length=hop_length)
@@ -264,53 +308,6 @@ def get_rqa_score2(ref_rqa, query_rqa, query_paths, threshold=0.25):
         if (curr_score>threshold):
             res.append(curr_score)
     return len(res) / len(query_paths)
-
-def query(query_filepath, source_dir, sr=16000, n_fft=2048, hop_length=1024, verbose=True, no_identity_match=True, k=5, n_paths=5, enhance=True):
-    matches = {}
-    for dirpath, dirnames, filenames in os.walk(source_dir):
-        for filename in filenames:
-            if filename.endswith(".wav"):
-                ref_filepath = os.path.join(dirpath, filename)
-                if no_identity_match==True and os.path.basename(ref_filepath) != os.path.basename(query_filepath):
-                    ref_xsim, ref_rqa, ref_paths, _ = get_xsim_multi(ref_filepath, ref_filepath, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, n_paths=n_paths, enhance=enhance)
-                    print(f"Computing cross-similarity for {os.path.basename(query_filepath)} against {os.path.basename(ref_filepath)}.")
-                    query_xsim, query_rqa, query_paths, _ = get_xsim_multi(ref_filepath, query_filepath, sr=sr, fft_size=n_fft, hop_length=hop_length, k=k, n_paths=n_paths, enhance=enhance)
-                    paths, _ = get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
-                    for (i, (ref_start, ref_stop, query_start, query_stop)) in enumerate(paths):
-                        match = {
-                            "score": get_path_score(ref_rqa, query_rqa, ref_paths[i], query_paths[i]),
-                            #"score": get_normalized_score(query_rqa, query_paths[0]),
-                            "queryStart": query_start,
-                            "queryStop": query_stop,
-                            "referenceStart": ref_start,
-                            "referenceStop": ref_stop,
-                        }
-                        if ref_filepath not in matches:
-                            matches[ref_filepath] = [match]
-                        else:
-                            matches[ref_filepath].append(match)
-    if verbose:
-        return matches
-    else:
-        return parse_query_output(query_filepath, matches)
-
-def parse_query_output(query_filepath, query_output):
-    result = {}
-    keys = list(query_output.keys())
-    for (i, v) in enumerate(list(query_output.values())):
-        k = keys[i]
-        score = float(np.mean([match["score"] for match in v]))
-        #scores = [match["score"] for match in v]
-        query_segs = [[match["queryStart"]*1000, match["queryStop"]*1000] for match in v]
-        ref_segs = [[match["referenceStart"]*1000, match["referenceStop"]*1000] for match in v]
-        result[f"results_{i}"] = {
-            "score": score, #scores[0],
-            "query_file": os.path.basename(query_filepath),
-            "query_segments": query_segs,
-            "reference_file": os.path.basename(k),
-            "reference_segments": ref_segs
-        }
-    return result
 
 def onpick(event):
     thisline = event.artist
