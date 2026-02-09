@@ -9,7 +9,7 @@ authors = [
   {name = "Christopher Melen", email = "chris_melen@yahoo.com"}
 ]
 dependencies = [
-  "numpy",
+  "numpy==1.26.4",
   "scipy",
   "scikit-learn",
   "pandas",
