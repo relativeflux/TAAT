@@ -7,6 +7,7 @@ import librosa
 import soundfile as sf
 from cross_similarity import *
 from dtw import dtw
+from tqdm import trange
 
 
 class QueryResult:
@@ -34,6 +35,7 @@ class QueryResult:
         self.info = info
         self.result = result
         self.matrices = None
+        self.paths = {}
 
     def plot(self):
         """
@@ -266,9 +268,9 @@ def query2(source_dir, query_filepath, chunk_length=30, overlap=0.5,
                                                             k=k, metric=metric, n_paths=n_paths,
                                                             enhance=True, zero_mean=zero_mean, n_filters=n_filters)
                         print("")
-                        for (query_idx, query_offset) in enumerate(range(0, math.floor(query_file_dur-overlap_secs), overlap_secs)):
+                        for (query_idx, query_offset) in enumerate(trange(0, math.floor(query_file_dur-overlap_secs), overlap_secs)):
                             query_chunk, _ = librosa.load(query_filepath, sr=sr, mono=True, offset=query_offset, duration=chunk_length)
-                            print(f"Computing cross-similarity for {os.path.basename(query_filepath)} chunk_{query_idx} against {os.path.basename(ref_filepath)} chunk_{ref_idx}.")
+                            #print(f"Computing cross-similarity for {os.path.basename(query_filepath)} chunk_{query_idx} against {os.path.basename(ref_filepath)} chunk_{ref_idx}.")
                             query_xsim, query_rqa, query_paths, _ = get_xsim_multi2(query_chunk, ref_chunk,
                                                                         features=features, sr=sr,
                                                                         fft_size=n_fft, hop_length=hop_length,
@@ -312,9 +314,16 @@ def query2(source_dir, query_filepath, chunk_length=30, overlap=0.5,
                                     dim=[query_idx+1, ref_idx+1],
                                     no_identity_match=no_identity_match)
             qr = QueryResult(query_filepath=query_filepath,
-                             result=parsed_result,
+                             result={},
                              info=info)
+            qr._result = parsed_result
             qr.matrices = mm
+            for i, (filepath, m) in enumerate(qr.matrices.items()):
+                rqa, path = librosa.sequence.rqa(m)
+                f = filter_result_for_path(filepath, qr._result.values(), path)
+                merged = get_merged_path(f, chunk_length, overlap)
+                #qr.paths[f"results_{i}"] = merged
+                qr.result[f"results_{i}"] = merged
             return qr
 
 def parse_query_output2(query_filepath, query_output, n_paths):
@@ -359,6 +368,42 @@ def get_score_matrices(source_dir, query_filepath, data, chunk_length,
                     f = list(filter(lambda x: os.path.basename(x["reference_file"].split(" chunk_")[0])==filename, data))
                     m = get_score_matrix(f, dim)
                     result[f"{source_dir}/{filename}"] = m
+    return result
+
+def filter_result_for_path(filepath, data, path):
+    result = []
+    for [x, y] in path:
+        f = filter(lambda d: int(d["query_file"].split(" chunk_")[-1])==x and \
+                d["reference_file"].split(" chunk_")[0]==filepath and \
+                int(d["reference_file"].split(" chunk_")[-1])==y, data)
+        result = result + list(f)
+    return result
+
+def get_merged_path(path, chunk_length, overlap):
+    result = {}
+    query_chunk_idxs = [int(d["query_file"].split(" chunk_")[-1]) for d in path]
+    ref_chunk_idxs = [int(d["reference_file"].split(" chunk_")[-1]) for d in path]
+    query_offsets = [float(idx * (chunk_length * overlap)) for idx in query_chunk_idxs]
+    ref_offsets = [float(idx * (chunk_length * overlap)) for idx in ref_chunk_idxs]
+    query_segs = np.array([d["query_segments"] for d in path])
+    query_segs = [seg + query_offsets[i]*1000 for (i, seg) in enumerate(query_segs)]
+    ref_segs = np.array([d["reference_segments"] for d in path])
+    ref_segs = [seg + ref_offsets[i]*1000 for (i, seg) in enumerate(ref_segs)]
+    ranges = zip_ranges(query_segs, ref_segs)
+    merged = merge_ranges(ranges)
+    result["query_file"] = path[0]["query_file"].split(" chunk_")[0]
+    result["reference_file"] = path[0]["reference_file"].split(" chunk_")[0]
+    result["query_segments"] = [[q1, q2] for [q1, q2, _, _] in merged]
+    result["reference_segments"] = [[r1, r2] for [_, _, r1, r2] in merged]
+    return result
+
+def zip_ranges(qq, rr):
+    result = []
+    for (i, qs) in enumerate(qq):
+        z = zip(qs, rr[i])
+        zz = [[float(q1), float(q2), float(r1), float(r2)] \
+                 for ((q1, q2),(r1, r2)) in z]
+        result = result + zz
     return result
 
 def onpick(event, matrix):

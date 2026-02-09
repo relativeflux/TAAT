@@ -244,7 +244,7 @@ def get_time_formatted_paths(paths, n_fft=2048, hop_length=1024):
 def is_overlapping(start1, end1, start2, end2, margin=2):
     return (abs(end1-start2) <= margin or abs(end2-start1) <= margin)
 
-def merge_matches(matches, margin=2):
+def merge_ranges(matches, margin=2):
     result = [matches[0]]
     for head in matches[1:]:
         tail = result[-1]
