@@ -341,7 +341,7 @@ def parse_query_output2(query_filepath, query_output, n_paths):
                 "score": score,
                 "query_file": val,
                 "query_segments": query_segs,
-                "reference_file": key,
+                "reference_file": key.replace("\\", "/") if os.name=="nt" else key,
                 "reference_segments": ref_segs
             })
     results = {}
