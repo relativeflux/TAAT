@@ -20,7 +20,17 @@ def with_temp_file():
 '''
 
 
-def write_time_stretched_file(input_filepath: str, output_dir: str, sr=16000, chunk_length=10, time_stretch=1):
+pitch_shifts = {
+    "simple": [12],
+    "simple_variable": [4, 7, 12],
+    "complex_variable": [2, 4, 5, 7, 9, 11, 12],
+    "chromatic_variable": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+}
+
+def pitch_shift_2_time_shift(pitch_shift=0):
+    return 2 ** (pitch_shift / 12)
+
+def write_pitch_shifted_file(input_filepath: str, output_dir: str, sr=16000, chunk_length=10, pitch_shift=0):
     if (not output_dir=="tmp"):
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -29,9 +39,11 @@ def write_time_stretched_file(input_filepath: str, output_dir: str, sr=16000, ch
         wav.setnchannels(1)
         wav.setsampwidth(2)
         wav.setframerate(sr)
+        time_stretch = pitch_shift_2_time_shift(pitch_shift)
         for (_, chunk) in stream(input_filepath, chunk_length=chunk_length, overlap=1.0,
                                  print_fn=False, show_progress_bar=False):
             if chunk is not None and len(chunk) != 0:
+                chunk = librosa.effects.pitch_shift(chunk, n_steps=pitch_shift, sr=sr)
                 chunk = librosa.effects.time_stretch(chunk, rate=time_stretch)
                 chunk = (chunk * 32767).astype(np.int16)
                 wav.writeframes(chunk)
@@ -43,7 +55,6 @@ def write_time_stretched_file(input_filepath: str, output_dir: str, sr=16000, ch
     # but if it does, it indicates the completion of writing
     print("Write operation completed")
     return None
-
 
 def walk(dir="", filetype=".wav", only_load_if=lambda filename: filename==filename,
          chunk_length=30, overlap=0.5, show_progress_bar=True):
