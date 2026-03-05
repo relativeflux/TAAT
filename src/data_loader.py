@@ -27,7 +27,7 @@ pitch_shifts = {
     "chromatic_variable": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 }
 
-def pitch_shift_2_time_shift(pitch_shift=0):
+def pitch_shift_2_time_stretch(pitch_shift=0):
     return 2 ** (pitch_shift / 12)
 
 def write_pitch_shifted_file(input_filepath: str, output_dir: str, sr=16000, chunk_length=10, pitch_shift=0):
@@ -39,7 +39,7 @@ def write_pitch_shifted_file(input_filepath: str, output_dir: str, sr=16000, chu
         wav.setnchannels(1)
         wav.setsampwidth(2)
         wav.setframerate(sr)
-        time_stretch = pitch_shift_2_time_shift(pitch_shift)
+        time_stretch = pitch_shift_2_time_stretch(pitch_shift)
         for (_, chunk) in stream(input_filepath, chunk_length=chunk_length, overlap=1.0,
                                  print_fn=False, show_progress_bar=False):
             if chunk is not None and len(chunk) != 0:
