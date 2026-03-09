@@ -1,13 +1,13 @@
 import os
 from pathlib import Path
 import pprint
+import tempfile
 import numpy as np
-import sqlite3
 import librosa
 import soundfile as sf
+from data_loader import *
 from cross_similarity import *
 from dtw import dtw
-from tqdm import trange
 
 
 class QueryResult:
@@ -246,51 +246,54 @@ def parse_query_output(query_filepath, query_output):
         }
     return result
 
-def query2(source_dir, query_filepath, chunk_length=30, overlap=0.5,
-           features=["melspectrogram"], sr=16000, n_fft=2048, hop_length=1024,
-           k=5, metric="cosine", n_paths=5, no_identity_match=True, verbose=False,
-           enhance=True, zero_mean=False, n_filters=10):
-    for dirpath, dirnames, filenames in os.walk(source_dir):
-        query_file_dur = int(librosa.get_duration(path=query_filepath))
-        matches = {}
-        for filename in filenames:
-            if filename.endswith(".wav"):
-                if (no_identity_match and filename != os.path.basename(query_filepath)) or \
-                        (not no_identity_match):
-                    ref_filepath = os.path.join(dirpath, filename)
-                    ref_file_dur = int(librosa.get_duration(path=ref_filepath))
-                    overlap_secs = int(chunk_length * overlap)
-                    print(f"Computing cross-similarity for {os.path.basename(query_filepath)} against {os.path.basename(ref_filepath)}.")
-                    for (ref_idx, ref_offset) in enumerate(range(0, math.floor(ref_file_dur-overlap_secs), overlap_secs)):
-                        ref_chunk, _ = librosa.load(ref_filepath, sr=sr, mono=True, offset=ref_offset, duration=chunk_length)
-                        ref_xsim, ref_rqa, ref_paths, _ = get_xsim_multi2(ref_chunk, ref_chunk,
+def get_query_result(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, features=["melspectrogram"],
+                     n_fft=2048, hop_length=1024, k=5, metric="cosine", n_paths=5, enhance=True, zero_mean=False,
+                     n_filters=5, no_identity_match=True):
+    def check_identity_match(filename):
+        return (no_identity_match and filename != os.path.basename(query_filepath) or (not no_identity_match))
+    def print_fn(filename):
+        return f"Computing cross-similarity for {os.path.basename(query_filepath)} against {os.path.basename(filename)}."
+    matches = {}
+    for (ref_filepath, ref_idx, ref_chunk) in walk(dir=source_dir, only_load_if=check_identity_match, print_fn=print_fn,
+                                                   chunk_length=chunk_length, overlap=overlap, show_progress_bar=False):
+        (ref_xsim, ref_rqa, ref_paths, _) = get_xsim_multi2(ref_chunk, ref_chunk,
                                                             features=features, sr=sr,
                                                             fft_size=n_fft, hop_length=hop_length,
                                                             k=k, metric=metric, n_paths=n_paths,
                                                             enhance=enhance, zero_mean=zero_mean, n_filters=n_filters)
-                        #print("")
-                        for (query_idx, query_offset) in enumerate(trange(0, math.floor(query_file_dur-overlap_secs), overlap_secs)):
-                            query_chunk, _ = librosa.load(query_filepath, sr=sr, mono=True, offset=query_offset, duration=chunk_length)
-                            #print(f"Computing cross-similarity for {os.path.basename(query_filepath)} chunk_{query_idx} against {os.path.basename(ref_filepath)} chunk_{ref_idx}.")
-                            query_xsim, query_rqa, query_paths, _ = get_xsim_multi2(query_chunk, ref_chunk,
-                                                                        features=features, sr=sr,
-                                                                        fft_size=n_fft, hop_length=hop_length,
-                                                                        k=k, metric=metric, n_paths=n_paths,
-                                                                        enhance=enhance, zero_mean=zero_mean, n_filters=n_filters)
-                            paths, _ = get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
-                            for (i, (ref_start, ref_stop, query_start, query_stop)) in enumerate(paths):
-                                match = {
-                                    "query_file": f"{os.path.basename(query_filepath)} chunk_{query_idx}",
-                                    "score": get_path_score(ref_rqa, query_rqa, ref_paths[i], query_paths[i]),
-                                    "queryStart": query_start,
-                                    "queryStop": query_stop,
-                                    "referenceStart": ref_start,
-                                    "referenceStop": ref_stop,
-                                }
-                                if f"{ref_filepath} chunk_{ref_idx}" not in matches:
-                                    matches[f"{ref_filepath} chunk_{ref_idx}"] = [match]
-                                else:
-                                    matches[f"{ref_filepath} chunk_{ref_idx}"].append(match)
+        for (query_idx, query_chunk) in stream(query_filepath, chunk_length=chunk_length, overlap=overlap):
+            (query_xsim, query_rqa, query_paths, _) = get_xsim_multi2(query_chunk, ref_chunk,
+                                                                      features=features, sr=sr,
+                                                                      fft_size=n_fft, hop_length=hop_length,
+                                                                      k=k, metric=metric, n_paths=n_paths,
+                                                                      enhance=enhance, zero_mean=zero_mean, n_filters=n_filters)
+            paths, _ = get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
+            for (i, (ref_start, ref_stop, query_start, query_stop)) in enumerate(paths):
+                match = {
+                    "query_file": f"{os.path.basename(query_filepath)} chunk_{query_idx}",
+                    "score": get_path_score(ref_rqa, query_rqa, ref_paths[i], query_paths[i]),
+                    "queryStart": query_start,
+                    "queryStop": query_stop,
+                    "referenceStart": ref_start,
+                    "referenceStop": ref_stop,
+                }
+                if f"{ref_filepath} chunk_{ref_idx}" not in matches:
+                    matches[f"{ref_filepath} chunk_{ref_idx}"] = [match]
+                else:
+                    matches[f"{ref_filepath} chunk_{ref_idx}"].append(match)
+    return matches
+
+def query2(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, features=["melspectrogram"],
+           n_fft=2048, hop_length=1024, k=5, metric="cosine", n_paths=5, pitch_shift=0,
+           enhance=True, zero_mean=False, n_filters=5, no_identity_match=True):
+    query_filepath_original = query_filepath
+    with tempfile.TemporaryDirectory() as tmpdir:
+        query_filepath = write_pitch_shifted_file(input_filepath=query_filepath,
+                                                  output_dir=tmpdir,
+                                                  pitch_shift=pitch_shift)
+        matches = get_query_result(source_dir=source_dir, query_filepath=query_filepath, sr=sr, chunk_length=chunk_length, overlap=overlap,
+                                   features=features, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, n_paths=n_paths,
+                                   enhance=enhance, zero_mean=zero_mean, n_filters=n_filters, no_identity_match=no_identity_match)
         info = {
             "source_dir": source_dir,
             "features": features,
@@ -301,31 +304,24 @@ def query2(source_dir, query_filepath, chunk_length=30, overlap=0.5,
             "metric": metric,
             "n_paths": n_paths
         }
-        if verbose:
-            return QueryResult(query_filepath=query_filepath,
-                               result=matches,
-                               info=info)
-        else:
-            parsed_result = parse_query_output2(query_filepath, matches, n_paths)
-            mm = get_score_matrices(source_dir=source_dir,
-                                    query_filepath=query_filepath,
-                                    data=parsed_result.values(),
-                                    chunk_length=chunk_length,
-                                    overlap=overlap,
-                                    #dim=[query_idx+1, ref_idx+1],
-                                    no_identity_match=no_identity_match)
-            qr = QueryResult(query_filepath=query_filepath,
-                             result={},
-                             info=info)
-            qr._result = parsed_result
-            qr.matrices = mm
-            for i, (filepath, m) in enumerate(qr.matrices.items()):
-                rqa, path = librosa.sequence.rqa(m)
-                f = filter_result_for_path(filepath, qr._result.values(), path)
-                merged = get_merged_path(f, chunk_length, overlap)
-                #qr.paths[f"results_{i}"] = merged
-                qr.result[f"results_{i}"] = merged
-            return qr
+        parsed_result = parse_query_output2(query_filepath, matches, n_paths)
+        mm = get_score_matrices(source_dir=source_dir,
+                                query_filepath=query_filepath,
+                                data=parsed_result.values(),
+                                chunk_length=chunk_length,
+                                overlap=overlap,
+                                no_identity_match=no_identity_match)
+        qr = QueryResult(query_filepath=query_filepath_original,
+                        result={},
+                        info=info)
+        qr._result = parsed_result
+        qr.matrices = mm
+        for i, (filepath, m) in enumerate(qr.matrices.items()):
+            rqa, path = librosa.sequence.rqa(m)
+            f = filter_result_for_path(filepath, qr._result.values(), path)
+            merged = get_merged_path(f, chunk_length, overlap)
+            qr.result[f"results_{i}"] = merged
+        return qr
 
 def parse_query_output2(query_filepath, query_output, n_paths):
     temp = []
@@ -385,9 +381,14 @@ def get_score_matrices(source_dir, query_filepath, data, chunk_length,
                 if (no_identity_match and filename != query_filename) or (not no_identity_match):
                     ref_filepath = os.path.join(dirpath, filename)
                     d2 = math.ceil((librosa.get_duration(path=ref_filepath)-overlap_secs) / overlap_secs)
-                    f = list(filter(lambda x: os.path.basename(x["reference_file"].split(" chunk_")[0])==filename, data))
-                    m = get_score_matrix(f, [d1, d2])
-                    result[f"{source_dir}/{filename}"] = m
+                    if d2 > 2:
+                        f = list(filter(lambda x: os.path.basename(x["reference_file"].split(" chunk_")[0])==filename, data))
+                        m = get_score_matrix(f, [d1, d2])
+                        result[f"{source_dir}/{filename}"] = m
+                    else:
+                        warning_msg = f"Warning: skipping score matrix entry for reference file '{ref_filepath}', "\
+                                       "as it contains too few columns (must be > 2)."
+                        print(warning_msg)
     return result
 
 def filter_result_for_path(filepath, data, path):
