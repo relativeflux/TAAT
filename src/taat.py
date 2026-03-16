@@ -46,7 +46,7 @@ class QueryResult:
         ref_files = []
         for (_, val) in result.items():
             score = val["score"]
-            ref_file = val["reference_file"]
+            ref_file = val["collection_file"]
             ref_files.append(ref_file)
             scores[ref_file] = score
         filename = os.path.basename(self.query_filepath)
@@ -111,9 +111,9 @@ class QueryResult:
             json.dump(info, f, indent=3)
 
         for match in matches.values():
-            ref_filepath = os.path.join(source_dir, match["reference_file"])
+            ref_filepath = os.path.join(source_dir, match["collection_file"])
             matches_dir = make_dir_for_file_path(outdir, ref_filepath)
-            ref_segs = match["reference_segments"]
+            ref_segs = match["collection_segments"]
             query_segs = match["query_segments"]
             for (i, ref_seg) in enumerate(ref_segs):
                 ref_start, ref_end = ref_seg
@@ -201,8 +201,8 @@ def query(source_dir, query_filepath, backend="cross_similarity", features=["mel
                             "score": get_path_score(ref_rqa, query_rqa, ref_paths[i], query_paths[i]),
                             "queryStart": query_start,
                             "queryStop": query_stop,
-                            "referenceStart": ref_start,
-                            "referenceStop": ref_stop,
+                            "collectionStart": ref_start,
+                            "collectionStop": ref_stop,
                         }
                         if ref_filepath not in matches:
                             matches[ref_filepath] = [match]
@@ -236,13 +236,13 @@ def parse_query_output(query_filepath, query_output):
         score = float(np.mean([match["score"] for match in v]))
         #scores = [match["score"] for match in v]
         query_segs = [[match["queryStart"]*1000, match["queryStop"]*1000] for match in v]
-        ref_segs = [[match["referenceStart"]*1000, match["referenceStop"]*1000] for match in v]
+        ref_segs = [[match["collectionStart"]*1000, match["collectionStop"]*1000] for match in v]
         result[f"results_{i}"] = {
             "score": score, #scores[0],
             "query_file": os.path.basename(query_filepath),
             "query_segments": query_segs,
-            "reference_file": os.path.basename(k),
-            "reference_segments": ref_segs
+            "collection_file": os.path.basename(k),
+            "collection_segments": ref_segs
         }
     return result
 
@@ -274,8 +274,8 @@ def get_query_result(source_dir, query_filepath, sr=16000, chunk_length=30, over
                     "score": get_path_score(ref_rqa, query_rqa, ref_paths[i], query_paths[i]),
                     "queryStart": query_start,
                     "queryStop": query_stop,
-                    "referenceStart": ref_start,
-                    "referenceStop": ref_stop,
+                    "collectionStart": ref_start,
+                    "collectionStop": ref_stop,
                 }
                 if f"{ref_filepath} chunk_{ref_idx}" not in matches:
                     matches[f"{ref_filepath} chunk_{ref_idx}"] = [match]
@@ -284,8 +284,8 @@ def get_query_result(source_dir, query_filepath, sr=16000, chunk_length=30, over
     return matches
 
 def query2(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, features=["melspectrogram"],
-           n_fft=2048, hop_length=1024, k=5, metric="cosine", n_paths=5, pitch_shift=0,
-           enhance=True, zero_mean=False, n_filters=5, no_identity_match=True):
+           n_fft=2048, hop_length=1024, k=3, metric="cosine", n_paths=5, pitch_shift=0,
+           prune=False, score_threshold=0.25, path_margin=2, no_identity_match=True):
     query_filepath_original = query_filepath
     with tempfile.TemporaryDirectory() as tmpdir:
         query_filepath = write_pitch_shifted_file(input_filepath=query_filepath,
@@ -293,7 +293,7 @@ def query2(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, f
                                                   pitch_shift=pitch_shift)
         matches = get_query_result(source_dir=source_dir, query_filepath=query_filepath, sr=sr, chunk_length=chunk_length, overlap=overlap,
                                    features=features, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, n_paths=n_paths,
-                                   enhance=enhance, zero_mean=zero_mean, n_filters=n_filters, no_identity_match=no_identity_match)
+                                   enhance=True, zero_mean=prune, n_filters=5, no_identity_match=no_identity_match)
         info = {
             "source_dir": source_dir,
             "features": features,
@@ -310,18 +310,24 @@ def query2(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, f
                                 data=parsed_result.values(),
                                 chunk_length=chunk_length,
                                 overlap=overlap,
+                                threshold=score_threshold,
                                 no_identity_match=no_identity_match)
         qr = QueryResult(query_filepath=query_filepath_original,
-                        result={},
-                        info=info)
+                         result={},
+                         info=info)
         qr._result = parsed_result
         qr.matrices = mm
         for i, (filepath, m) in enumerate(qr.matrices.items()):
             rqa, path = librosa.sequence.rqa(m)
             f = filter_result_for_path(filepath, qr._result.values(), path)
-            merged = get_merged_path(f, chunk_length, overlap)
+            merged = get_merged_path(f, chunk_length, overlap, path_margin)
             qr.result[f"results_{i}"] = merged
         return qr
+
+def parse_seg_vals(filtered, key1, key2, s=1000, places=3):
+    base_str = f"%.{places}f"
+    return [[float(base_str % (d[key1]*s)), float(base_str % (d[key2]*s))] \
+            for d in filtered]
 
 def parse_query_output2(query_filepath, query_output, n_paths):
     temp = []
@@ -331,46 +337,34 @@ def parse_query_output2(query_filepath, query_output, n_paths):
             val = f"{query_filename} chunk_{j}"
             filtered = list(filter(lambda x: "query_file" in x and x["query_file"]==val, entry))
             score = float(np.mean([d["score"] for d in filtered]))
-            query_segs = [[d["queryStart"]*1000, d["queryStop"]*1000] for d in filtered]
-            ref_segs = [[d["referenceStart"]*1000, d["referenceStop"]*1000] for d in filtered]
+            #query_segs = [[d["queryStart"]*1000, d["queryStop"]*1000] for d in filtered]
+            #ref_segs = [[d["collectionStart"]*1000, d["collectionStop"]*1000] for d in filtered]
+            query_segs = parse_seg_vals(filtered, "queryStart", "queryStop")
+            ref_segs = parse_seg_vals(filtered, "collectionStart", "collectionStop")
             temp.append({
                 "score": score,
                 "query_file": val,
                 "query_segments": query_segs,
-                "reference_file": key.replace("\\", "/") if os.name=="nt" else key,
-                "reference_segments": ref_segs
+                "collection_file": key.replace("\\", "/") if os.name=="nt" else key,
+                "collection_segments": ref_segs
             })
     results = {}
     for k, entry in enumerate(temp):
         results[f"results_{k}"] = entry
     return results
 
-def get_score_matrix(data, dim):
+def get_score_matrix(data, dim, threshold=0.0):
     matrix = np.zeros(dim)
     for d in data:
-        query_idx = int(d["query_file"].split(" chunk_")[-1])
-        ref_idx = int(d["reference_file"].split(" chunk_")[-1])
-        matrix[query_idx, ref_idx] = d["score"]
+        score = d["score"]
+        if score > threshold:
+            query_idx = int(d["query_file"].split(" chunk_")[-1])
+            ref_idx = int(d["collection_file"].split(" chunk_")[-1])
+            matrix[query_idx, ref_idx] = d["score"]
     return matrix
 
-'''
 def get_score_matrices(source_dir, query_filepath, data, chunk_length,
-                       overlap, dim, no_identity_match=True):
-    result = {}
-    query_filename = os.path.basename(query_filepath)
-    for dirpath, dirnames, filenames in os.walk(source_dir):
-        for filename in filenames:
-            if filename.endswith(".wav"):
-                if (no_identity_match and filename != query_filename) or (not no_identity_match):
-                    ref_filepath = os.path.join(dirpath, filename)
-                    f = list(filter(lambda x: os.path.basename(x["reference_file"].split(" chunk_")[0])==filename, data))
-                    m = get_score_matrix(f, dim)
-                    result[f"{source_dir}/{filename}"] = m
-    return result
-'''
-
-def get_score_matrices(source_dir, query_filepath, data, chunk_length,
-                       overlap, no_identity_match=True):
+                       overlap, threshold=0.0, no_identity_match=True):
     result = {}
     query_filename = os.path.basename(query_filepath)
     overlap_secs = int(chunk_length * overlap)
@@ -382,11 +376,11 @@ def get_score_matrices(source_dir, query_filepath, data, chunk_length,
                     ref_filepath = os.path.join(dirpath, filename)
                     d2 = math.ceil((librosa.get_duration(path=ref_filepath)-overlap_secs) / overlap_secs)
                     if d2 > 2:
-                        f = list(filter(lambda x: os.path.basename(x["reference_file"].split(" chunk_")[0])==filename, data))
-                        m = get_score_matrix(f, [d1, d2])
+                        f = list(filter(lambda x: os.path.basename(x["collection_file"].split(" chunk_")[0])==filename, data))
+                        m = get_score_matrix(f, [d1, d2], threshold)
                         result[f"{source_dir}/{filename}"] = m
                     else:
-                        warning_msg = f"Warning: skipping score matrix entry for reference file '{ref_filepath}', "\
+                        warning_msg = f"Warning: skipping score matrix entry for collection file '{ref_filepath}', "\
                                        "as it contains too few columns (must be > 2)."
                         print(warning_msg)
     return result
@@ -395,28 +389,28 @@ def filter_result_for_path(filepath, data, path):
     result = []
     for [x, y] in path:
         f = filter(lambda d: int(d["query_file"].split(" chunk_")[-1])==x and \
-                d["reference_file"].split(" chunk_")[0]==filepath and \
-                int(d["reference_file"].split(" chunk_")[-1])==y, data)
+                d["collection_file"].split(" chunk_")[0]==filepath and \
+                int(d["collection_file"].split(" chunk_")[-1])==y, data)
         result = result + list(f)
     return result
 
-def get_merged_path(path, chunk_length, overlap):
-    result = {}
+def get_merged_path(path, chunk_length, overlap, margin):
     query_chunk_idxs = [int(d["query_file"].split(" chunk_")[-1]) for d in path]
-    ref_chunk_idxs = [int(d["reference_file"].split(" chunk_")[-1]) for d in path]
+    ref_chunk_idxs = [int(d["collection_file"].split(" chunk_")[-1]) for d in path]
     query_offsets = [float(idx * (chunk_length * overlap)) for idx in query_chunk_idxs]
     ref_offsets = [float(idx * (chunk_length * overlap)) for idx in ref_chunk_idxs]
     query_segs = np.array([d["query_segments"] for d in path])
     query_segs = [seg + query_offsets[i]*1000 for (i, seg) in enumerate(query_segs)]
-    ref_segs = np.array([d["reference_segments"] for d in path])
+    ref_segs = np.array([d["collection_segments"] for d in path])
     ref_segs = [seg + ref_offsets[i]*1000 for (i, seg) in enumerate(ref_segs)]
     ranges = zip_ranges(query_segs, ref_segs)
-    merged = merge_ranges(ranges)
-    result["query_file"] = path[0]["query_file"].split(" chunk_")[0]
-    result["reference_file"] = path[0]["reference_file"].split(" chunk_")[0]
-    result["query_segments"] = [[q1, q2] for [q1, q2, _, _] in merged]
-    result["reference_segments"] = [[r1, r2] for [_, _, r1, r2] in merged]
-    return result
+    merged = merge_ranges(ranges, margin)
+    return {
+        "query_file": path[0]["query_file"].split(" chunk_")[0],
+        "collection_file": path[0]["collection_file"].split(" chunk_")[0],
+        "query_segments": [[q1, q2] for [q1, q2, _, _] in merged],
+        "collection_segments": [[r1, r2] for [_, _, r1, r2] in merged]
+    }
 
 def zip_ranges(qq, rr):
     result = []
@@ -434,7 +428,7 @@ def onpick(event, matrix):
     subfig = ax.get_figure()
     suptitle = subfig.get_suptitle()
     print(suptitle)
-    suptitle = suptitle.split("Reference file: ")[-1].split("'")[1]
+    suptitle = suptitle.split("Collection file: ")[-1].split("'")[1]
     title = ax.get_title()
     print(f"Matrix:, {title}")
     score = matrix[suptitle][x, y]
@@ -455,7 +449,7 @@ def plot_matrices(filepath, mm):
         for row, subfig in enumerate(subfigs):
             m = mm[keys[row]]
             rqa, path = librosa.sequence.rqa(m, gap_onset=5, gap_extend=10)
-            subfig.suptitle(f"Reference file: '{keys[row]}'")
+            subfig.suptitle(f"Collection file: '{keys[row]}'")
             current_title = keys[row]
             ax = subfig.subplots(nrows=1, ncols=2)
             librosa.display.specshow(m, x_axis="frames", y_axis="frames", ax=ax[0])
