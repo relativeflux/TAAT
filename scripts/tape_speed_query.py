@@ -71,7 +71,9 @@ def main():
         if not os.path.isdir(case_path):
             continue
         source_dir = os.path.join(case_path, "data")
+        source_dir = source_dir.replace("\\", "")
         input_dir = os.path.join(case_path, "input")
+        input_dir = input_dir.replace("\\", "")
         if not os.path.isdir(source_dir) or not os.path.isdir(input_dir):
             print(f"Skipping {case_name}: missing data or input directory")
             continue
