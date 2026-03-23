@@ -16,12 +16,13 @@ site/
 # Project
 /output/*
 !/output/.gitkeep
+*.json
+!/scripts/default.config.json
 *.html
 *.wav
 *.zip
 *.log
 *.ipynb
 *.so
-*.json
 *.png
 !/docs/img/*.png
