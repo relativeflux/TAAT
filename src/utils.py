@@ -7,3 +7,8 @@ def dedup(lst):
 def json_read(filename: str):
     with open(filename) as f:
         return json.load(f)
+
+def json_write(data, filename: str, msg: str):
+    with open(filename, "w") as f:
+        if msg: print(msg)
+        json.dump(data, f, indent=3)

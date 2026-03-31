@@ -11,7 +11,7 @@ def butter_bandpass_filter(data, lowcut=180, highcut=3000,
     b, a = signal.butter(order, [low, high], btype="band")
     return signal.lfilter(b, a, data)
 
-def med_filter(spect, metric="cosine"):
+def median_filter(spect, metric="cosine"):
     return librosa.decompose.nn_filter(spect,
                                        aggregate=np.median,
                                        metric=metric)
@@ -27,3 +27,6 @@ def nlm_filter(spect, metric="cosine"):
 
 def transient_smoothing_filter(spect, size=[1, 9]):
     return ndimage.median_filter(spect, size=size)
+
+def preemphasis_filter(signal):
+    return librosa.effects.preemphasis(signal)
