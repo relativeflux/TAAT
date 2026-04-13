@@ -407,7 +407,7 @@ def get_merged_path(path, chunk_length, overlap, margin):
     merged = merge_ranges(ranges, margin)
     return {
         "query_file": path[0]["query_file"].split(" chunk_")[0],
-        "collection_file": path[0]["collection_file"].split(" chunk_")[0],
+        "collection_file": os.path.basename(path[0]["collection_file"]).split(" chunk_")[0],
         "query_segments": [[q1, q2] for [q1, q2, _, _] in merged],
         "collection_segments": [[r1, r2] for [_, _, r1, r2] in merged]
     }
