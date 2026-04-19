@@ -36,6 +36,14 @@ def write_pitch_shifted_file(input_filepath: str, output_dir: str, sr=16000, chu
     else:
         return input_filepath
 
+def get_n_chunks(filepath, chunk_length=10, overlap=0.5):
+    overlap_secs = int(chunk_length * overlap)
+    file_dur = int(librosa.get_duration(path=filepath))
+    n_chunks = 0
+    for (idx, _) in enumerate(range(0, math.floor(file_dur-overlap_secs), overlap_secs)):
+        n_chunks += 1
+    return n_chunks
+
 def walk(dir="", filetype=".wav", only_load_if=lambda filename: filename==filename,
          chunk_length=30, overlap=0.5, print_fn=None, show_progress_bar=True):
     result = []
