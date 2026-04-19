@@ -291,9 +291,6 @@ def query2(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, f
         query_filepath = write_pitch_shifted_file(input_filepath=query_filepath,
                                                   output_dir=tmpdir,
                                                   pitch_shift=pitch_shift)
-        matches = get_query_result(source_dir=source_dir, query_filepath=query_filepath, sr=sr, chunk_length=chunk_length, overlap=overlap,
-                                   features=features, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, n_paths=n_paths,
-                                   enhance=True, zero_mean=prune, n_filters=5, no_identity_match=no_identity_match)
         info = {
             "source_dir": source_dir,
             "features": features,
@@ -304,6 +301,19 @@ def query2(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, f
             "metric": metric,
             "n_paths": n_paths
         }
+        qr = QueryResult(query_filepath=query_filepath_original,
+                         result={},
+                         info=info)
+        n_query_chunks = get_n_chunks(query_filepath, chunk_length, overlap)
+        if (n_query_chunks==1):
+            warning_msg = f"Skipping analysis of query file '{query_filepath_original}' with chunk_length={chunk_length} "\
+                          f"and pitch_shift={pitch_shift}, as there are too few chunks to process "\
+                           "(must be more than a single chunk)."
+            print(warning_msg)
+            return qr
+        matches = get_query_result(source_dir=source_dir, query_filepath=query_filepath, sr=sr, chunk_length=chunk_length, overlap=overlap,
+                                   features=features, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, n_paths=n_paths,
+                                   enhance=True, zero_mean=prune, n_filters=5, no_identity_match=no_identity_match)
         parsed_result = parse_query_output2(query_filepath, matches, n_paths)
         mm = get_score_matrices(source_dir=source_dir,
                                 query_filepath=query_filepath,
@@ -312,9 +322,6 @@ def query2(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, f
                                 overlap=overlap,
                                 threshold=score_threshold,
                                 no_identity_match=no_identity_match)
-        qr = QueryResult(query_filepath=query_filepath_original,
-                         result={},
-                         info=info)
         qr._result = parsed_result
         qr.matrices = mm
         for i, (filepath, m) in enumerate(qr.matrices.items()):
