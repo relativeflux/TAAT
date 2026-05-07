@@ -60,14 +60,19 @@ def main(args):
         tape_speed = args["tape_speed"]
         result = {}
         for ts in tape_speeds[tape_speed]:
-            for s in [ts, -ts]:
-                key = f"+{ts}" if s==ts else f"-{ts}"
-                print(f"Running query for {tape_speed} tape speed, {key}.")
+            for s in [0, ts, -ts]:
+                key = 0
+                if s!=0:
+                    if s==ts:
+                        key = f"+{ts}"
+                    else:
+                        key = f"-{ts}"
+                print(f"Running query for {tape_speed} tape speed, pitch_shift={key}.")
                 q = query2(source_dir, query_filepath, sr=args["sr"], chunk_length=args["chunk_length"],
-                           overlap=args["overlap"], features=args["features"], n_fft=args["n_fft"], hop_length=args["hop_length"],
-                           k=args["k"], metric=args["metric"], n_paths=args["n_paths"], pitch_shift=s, prune=args["prune"],
-                           score_threshold=args["score_threshold"], path_margin=args["path_margin"], no_identity_match=args["no_identity_match"])
-                result[f"tape_speed={tape_speed}, {key}"] = q.result
+                        overlap=args["overlap"], features=args["features"], n_fft=args["n_fft"], hop_length=args["hop_length"],
+                        k=args["k"], metric=args["metric"], n_paths=args["n_paths"], pitch_shift=s, prune=args["prune"],
+                        score_threshold=args["score_threshold"], path_margin=args["path_margin"], no_identity_match=args["no_identity_match"])
+                result[f"tape_speed={tape_speed}, pitch_shift={key}"] = q.result
         output_filepath = os.path.join(results_dir, f"{case_name}-results.json")
         with open(output_filepath, "w") as f:
             print(f"Writing TAAT tape speed analysis data for {query_filepath} to {output_filepath}")

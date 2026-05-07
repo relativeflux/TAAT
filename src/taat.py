@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import pprint
+import warnings
 import tempfile
 import numpy as np
 import librosa
@@ -311,9 +312,11 @@ def query2(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, f
                            "(must be more than a single chunk)."
             print(warning_msg)
             return qr
-        matches = get_query_result(source_dir=source_dir, query_filepath=query_filepath, sr=sr, chunk_length=chunk_length, overlap=overlap,
-                                   features=features, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, n_paths=n_paths,
-                                   enhance=True, zero_mean=prune, n_filters=5, no_identity_match=no_identity_match)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            matches = get_query_result(source_dir=source_dir, query_filepath=query_filepath, sr=sr, chunk_length=chunk_length, overlap=overlap,
+                                    features=features, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, n_paths=n_paths,
+                                    enhance=True, zero_mean=prune, n_filters=5, no_identity_match=no_identity_match)
         parsed_result = parse_query_output2(query_filepath, matches, n_paths)
         mm = get_score_matrices(source_dir=source_dir,
                                 query_filepath=query_filepath,
