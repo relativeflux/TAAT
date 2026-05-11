@@ -71,7 +71,8 @@ def main(args):
                 q = query2(source_dir, query_filepath, sr=args["sr"], chunk_length=args["chunk_length"],
                         overlap=args["overlap"], features=args["features"], n_fft=args["n_fft"], hop_length=args["hop_length"],
                         k=args["k"], metric=args["metric"], n_paths=args["n_paths"], pitch_shift=s, prune=args["prune"],
-                        score_threshold=args["score_threshold"], path_margin=args["path_margin"], no_identity_match=args["no_identity_match"])
+                        score_threshold=args["score_threshold"], path_margin=args["path_margin"],
+                        no_identity_match=args["no_identity_match"], n_jobs=args["n_jobs"])
                 result[f"tape_speed={tape_speed}, pitch_shift={key}"] = q.result
         output_filepath = os.path.join(results_dir, f"{case_name}-results.json")
         with open(output_filepath, "w") as f:

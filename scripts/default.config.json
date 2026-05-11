@@ -12,5 +12,6 @@
     "prune": false,
     "score_threshold": 0.0,
     "path_margin": 2,
-    "no_identity_match": true
+    "no_identity_match": true,
+    "n_jobs": -1
 }

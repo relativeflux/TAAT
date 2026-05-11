@@ -250,7 +250,7 @@ def parse_query_output(query_filepath, query_output):
 
 def get_query_result(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, features=["melspectrogram"],
                      n_fft=2048, hop_length=1024, k=5, metric="cosine", n_paths=5, enhance=True, zero_mean=False,
-                     n_filters=5, no_identity_match=True):
+                     n_filters=5, no_identity_match=True, n_jobs=-1):
     def check_identity_match(filename):
         return (no_identity_match and filename != os.path.basename(query_filepath) or (not no_identity_match))
     def print_fn(filename):
@@ -285,7 +285,7 @@ def get_query_result(source_dir, query_filepath, sr=16000, chunk_length=30, over
                                                             fft_size=n_fft, hop_length=hop_length,
                                                             k=k, metric=metric, n_paths=n_paths,
                                                             enhance=enhance, zero_mean=zero_mean, n_filters=n_filters)
-        job = Parallel(n_jobs=-1, return_as="generator")(delayed(stream_body)(ref_filepath, ref_idx, ref_chunk, query_idx, query_chunk) \
+        job = Parallel(n_jobs=n_jobs, return_as="generator")(delayed(stream_body)(ref_filepath, ref_idx, ref_chunk, query_idx, query_chunk) \
                   for (query_idx, query_chunk) in stream(query_filepath, chunk_length=chunk_length, overlap=overlap, show_progress_bar=False))
         jobs.append(job)
         for job in jobs:
@@ -303,7 +303,7 @@ def parse_seg_vals(filtered, s=1000, places=3):
 
 def query2(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, features=["melspectrogram"],
            n_fft=2048, hop_length=1024, k=3, metric="cosine", n_paths=5, pitch_shift=0,
-           prune=False, score_threshold=0.25, path_margin=2, no_identity_match=True):
+           prune=False, score_threshold=0.25, path_margin=2, no_identity_match=True, n_jobs=-1):
     query_filepath_original = query_filepath
     with tempfile.TemporaryDirectory() as tmpdir:
         query_filepath = write_pitch_shifted_file(input_filepath=query_filepath,
@@ -333,7 +333,7 @@ def query2(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, f
             warnings.simplefilter("ignore", RuntimeWarning)
             matches = get_query_result(source_dir=source_dir, query_filepath=query_filepath, sr=sr, chunk_length=chunk_length, overlap=overlap,
                                        features=features, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, n_paths=n_paths,
-                                       enhance=True, zero_mean=prune, n_filters=5, no_identity_match=no_identity_match)
+                                       enhance=True, zero_mean=prune, n_filters=5, no_identity_match=no_identity_match, n_jobs=n_jobs)
         mm = get_score_matrices(source_dir=source_dir,
                                 query_filepath=query_filepath,
                                 data=matches.values(),
