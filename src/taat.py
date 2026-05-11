@@ -4,6 +4,7 @@ import pprint
 import warnings
 import tempfile
 import numpy as np
+from joblib import Parallel, delayed
 import librosa
 import soundfile as sf
 from data_loader import *
@@ -254,35 +255,51 @@ def get_query_result(source_dir, query_filepath, sr=16000, chunk_length=30, over
         return (no_identity_match and filename != os.path.basename(query_filepath) or (not no_identity_match))
     def print_fn(filename):
         return f"Computing cross-similarity for {os.path.basename(query_filepath)} against {os.path.basename(filename)}."
-    matches = {}
+    matches = []
+    jobs = []
+    def stream_body(ref_filepath, ref_idx, ref_chunk, query_idx, query_chunk):
+        (query_xsim, query_rqa, query_paths, _) = get_xsim_multi2(query_chunk, ref_chunk,
+                                                                  features=features, sr=sr,
+                                                                  fft_size=n_fft, hop_length=hop_length,
+                                                                  k=k, metric=metric, n_paths=n_paths,
+                                                                  enhance=enhance, zero_mean=zero_mean, n_filters=n_filters)
+        paths, _ = get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
+        scores = []
+        query_segs = []
+        ref_segs = []
+        for (i, (ref_start, ref_stop, query_start, query_stop)) in enumerate(paths):
+            scores.append(get_path_score(ref_rqa, query_rqa, ref_paths[i], query_paths[i]))
+            query_segs.append([query_start, query_stop])
+            ref_segs.append([ref_start, ref_stop])
+        return {
+            "score": float(np.mean(scores)),
+            "query_file": f"{os.path.basename(query_filepath)} chunk_{query_idx}",
+            "query_segments": parse_seg_vals(query_segs),
+            "collection_file": f"{ref_filepath} chunk_{ref_idx}",
+            "collection_segments": parse_seg_vals(ref_segs)
+        }
     for (ref_filepath, ref_idx, ref_chunk) in walk(dir=source_dir, only_load_if=check_identity_match, print_fn=print_fn,
-                                                   chunk_length=chunk_length, overlap=overlap, show_progress_bar=False):
+                                                   chunk_length=chunk_length, overlap=overlap, show_progress_bar=True):
         (ref_xsim, ref_rqa, ref_paths, _) = get_xsim_multi2(ref_chunk, ref_chunk,
                                                             features=features, sr=sr,
                                                             fft_size=n_fft, hop_length=hop_length,
                                                             k=k, metric=metric, n_paths=n_paths,
                                                             enhance=enhance, zero_mean=zero_mean, n_filters=n_filters)
-        for (query_idx, query_chunk) in stream(query_filepath, chunk_length=chunk_length, overlap=overlap):
-            (query_xsim, query_rqa, query_paths, _) = get_xsim_multi2(query_chunk, ref_chunk,
-                                                                      features=features, sr=sr,
-                                                                      fft_size=n_fft, hop_length=hop_length,
-                                                                      k=k, metric=metric, n_paths=n_paths,
-                                                                      enhance=enhance, zero_mean=zero_mean, n_filters=n_filters)
-            paths, _ = get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
-            for (i, (ref_start, ref_stop, query_start, query_stop)) in enumerate(paths):
-                match = {
-                    "query_file": f"{os.path.basename(query_filepath)} chunk_{query_idx}",
-                    "score": get_path_score(ref_rqa, query_rqa, ref_paths[i], query_paths[i]),
-                    "queryStart": query_start,
-                    "queryStop": query_stop,
-                    "collectionStart": ref_start,
-                    "collectionStop": ref_stop,
-                }
-                if f"{ref_filepath} chunk_{ref_idx}" not in matches:
-                    matches[f"{ref_filepath} chunk_{ref_idx}"] = [match]
-                else:
-                    matches[f"{ref_filepath} chunk_{ref_idx}"].append(match)
-    return matches
+        job = Parallel(n_jobs=-1, return_as="generator")(delayed(stream_body)(ref_filepath, ref_idx, ref_chunk, query_idx, query_chunk) \
+                  for (query_idx, query_chunk) in stream(query_filepath, chunk_length=chunk_length, overlap=overlap, show_progress_bar=False))
+        jobs.append(job)
+        for job in jobs:
+            for match in job:
+                matches.append(match)
+    results = {}
+    for k, entry in enumerate(matches):
+        results[f"results_{k}"] = entry
+    return results
+
+def parse_seg_vals(filtered, s=1000, places=3):
+    base_str = f"%.{places}f"
+    return [[float(base_str % (i*s)), float(base_str % (j*s))] \
+            for i, j in filtered]
 
 def query2(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, features=["melspectrogram"],
            n_fft=2048, hop_length=1024, k=3, metric="cosine", n_paths=5, pitch_shift=0,
@@ -315,17 +332,16 @@ def query2(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, f
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             matches = get_query_result(source_dir=source_dir, query_filepath=query_filepath, sr=sr, chunk_length=chunk_length, overlap=overlap,
-                                    features=features, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, n_paths=n_paths,
-                                    enhance=True, zero_mean=prune, n_filters=5, no_identity_match=no_identity_match)
-        parsed_result = parse_query_output2(query_filepath, matches, n_paths)
+                                       features=features, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, n_paths=n_paths,
+                                       enhance=True, zero_mean=prune, n_filters=5, no_identity_match=no_identity_match)
         mm = get_score_matrices(source_dir=source_dir,
                                 query_filepath=query_filepath,
-                                data=parsed_result.values(),
+                                data=matches.values(),
                                 chunk_length=chunk_length,
                                 overlap=overlap,
                                 threshold=score_threshold,
                                 no_identity_match=no_identity_match)
-        qr._result = parsed_result
+        qr._result = matches
         qr.matrices = mm
         for i, (filepath, m) in enumerate(qr.matrices.items()):
             rqa, path = librosa.sequence.rqa(m)
@@ -333,11 +349,6 @@ def query2(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, f
             merged = get_merged_path(f, chunk_length, overlap, path_margin)
             qr.result[f"results_{i}"] = merged
         return qr
-
-def parse_seg_vals(filtered, key1, key2, s=1000, places=3):
-    base_str = f"%.{places}f"
-    return [[float(base_str % (d[key1]*s)), float(base_str % (d[key2]*s))] \
-            for d in filtered]
 
 def parse_query_output2(query_filepath, query_output, n_paths):
     temp = []

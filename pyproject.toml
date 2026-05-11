@@ -15,6 +15,7 @@ dependencies = [
   "pandas",
   "matplotlib",
   "plotly[express]",
+  "joblib",
   "soundfile",
   "librosa",
   "scikit-image",
