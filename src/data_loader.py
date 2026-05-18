@@ -4,7 +4,7 @@ import mmap
 import numpy as np
 import librosa
 import wave
-from tqdm import trange
+from tqdm import tqdm, trange
 
 
 pitch_shifts = {
@@ -61,7 +61,6 @@ def stream(filepath, sr=16000, chunk_length=30, overlap=0.5, print_fn=None, show
     file_dur = int(librosa.get_duration(path=filepath))
     for (idx, offset) in enumerate(trange(0, math.floor(file_dur-overlap_secs), overlap_secs, disable=(not show_progress_bar))):
         if print_fn and idx==0:
-            print(print_fn(filepath))
+            tqdm.write(print_fn(filepath))
         chunk, _ = librosa.load(filepath, sr=sr, mono=True, offset=offset, duration=chunk_length)
         yield(idx, chunk)
-

@@ -301,6 +301,14 @@ def parse_seg_vals(filtered, s=1000, places=3):
     return [[float(base_str % (i*s)), float(base_str % (j*s))] \
             for i, j in filtered]
 
+class SuppressRuntimeWarnings:
+    def __enter__(self):
+        warnings.filterwarnings("ignore")
+        os.environ["PYTHONWARNINGS"]="ignore::RuntimeWarning"
+    def __exit__(self, *args):
+        warnings.filterwarnings("default")
+        del os.environ["PYTHONWARNINGS"]
+
 def query2(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, features=["melspectrogram"],
            n_fft=2048, hop_length=1024, k=3, metric="cosine", n_paths=5, pitch_shift=0,
            prune=False, score_threshold=0.25, path_margin=2, no_identity_match=True, n_jobs=-1):
@@ -329,8 +337,7 @@ def query2(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, f
                            "(must be more than a single chunk)."
             print(warning_msg)
             return qr
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", RuntimeWarning)
+        with SuppressRuntimeWarnings():
             matches = get_query_result(source_dir=source_dir, query_filepath=query_filepath, sr=sr, chunk_length=chunk_length, overlap=overlap,
                                        features=features, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, n_paths=n_paths,
                                        enhance=True, zero_mean=prune, n_filters=5, no_identity_match=no_identity_match, n_jobs=n_jobs)
