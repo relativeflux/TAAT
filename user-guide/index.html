@@ -318,10 +318,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#basic-usage" class="md-nav__link">
+  <a href="#api-usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Basic Usage
+        API Usage
       
     </span>
   </a>
@@ -329,10 +329,71 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-taat_interpreter-max-patch" class="md-nav__link">
+  <a href="#command-line-usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The taat_interpreter Max patch
+        Command Line Usage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Command Line Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#running-the-script" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running the script
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#command-line-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Command line parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data file structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#config-file-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Config file parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-taat-navigator-max-patch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The TAAT Navigator Max patch
       
     </span>
   </a>
@@ -476,10 +537,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#basic-usage" class="md-nav__link">
+  <a href="#api-usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Basic Usage
+        API Usage
       
     </span>
   </a>
@@ -487,10 +548,71 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-taat_interpreter-max-patch" class="md-nav__link">
+  <a href="#command-line-usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The taat_interpreter Max patch
+        Command Line Usage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Command Line Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#running-the-script" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running the script
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#command-line-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Command line parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data file structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#config-file-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Config file parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-taat-navigator-max-patch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The TAAT Navigator Max patch
       
     </span>
   </a>
@@ -532,8 +654,9 @@
 <p><code>python -m pip install .</code></p>
 <h4 id="install-using-conda">Install using <code>conda</code></h4>
 <p>TBC</p>
-<h3 id="basic-usage">Basic Usage</h3>
-<p>The code below provides an example of basic TAAT usage. For more advanced examples see the <a href="../tutorials/">Tutorials</a> page.</p>
+<h3 id="api-usage">API Usage</h3>
+<p>TAAT provides a <a href="../reference/">Python API</a>, which may be integrated into custom Python scripts and applications built by the user, but it also offers an easy to use command line version, available under <code>taat/scripts/taat.py</code>. This section outlines usage of the Python API, for information on using the command line script see the <a href="#command-line-usage">Command Line Usage</a> section below.</p>
+<p>The code below provides an example of basic TAAT Python API usage. For more advanced examples see the <a href="../tutorials/">Tutorials</a> page.</p>
 <pre><code class="language-python">from taat import query
 
 
@@ -551,9 +674,79 @@ query_result = query(source_dir=&quot;path/to/audio/files/to/query/against&quot;
 # Write matches to disk as audio files
 query_result.write(&quot;path/to/output/folder&quot;)
 </code></pre>
-<h3 id="the-taat_interpreter-max-patch">The taat_interpreter Max patch</h3>
-<p>We also have a Max patch available, the taat_interpreter (created by Dr Sam Gillies), which allows to load exported JSON output from a query result and display the it as playable audio waveforms:</p>
-<p><img alt="image" src="../img/taat_interpreter.png" /></p>
+<h3 id="command-line-usage">Command Line Usage</h3>
+<p>The following section outlines TAAT usage as a command line tool, via the script available at <code>taat/scripts/taat.py</code>. Whilst these instructions are provided for the non-technical user, the user is assumed to have at least a basic familiarity with command prompt (Windows) or terminal (Mac/Linux) applications.</p>
+<p><strong>N.B</strong>: Please note that in order to run the command line script version of TAAT it is still necessary to have Python avalable on your system, and to have installed TAAT according to the <a href="#installation">instructions</a> provided in the previous section.</p>
+<h4 id="running-the-script">Running the script</h4>
+<p>To run the script navigate to the top-level TAAT directory and at the command prompt/terminal enter the following: </p>
+<pre><code>`python scripts/taat.py --project_dir=&lt;drag and drop your project directory here&gt;`
+</code></pre>
+<p>Replace the text contained within the <code>&lt;&gt;</code> marks with the directory containing the data you want to analyse (see the section <a href="#data-file-structure">Data file structure</a> below) and press enter. </p>
+<p>You should then see visual output describing the activity of the TAAT analysis. </p>
+<p>When the process has finished, analysis results will be output as a .json file to the results folder in the TAAT directory.</p>
+<h4 id="command-line-parameters">Command line parameters</h4>
+<p>The following table gives information on the script's command line parameters:</p>
+<table>
+<thead>
+<tr>
+<th>Parameter Name</th>
+<th>Parameter Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>project_dir</code></td>
+<td>Path to the folder containing the audio files for analysis.</td>
+</tr>
+<tr>
+<td><code>config_file</code></td>
+<td>Path to the JSON config file (defaults to <code>scripts/default.config.json</code>).</td>
+</tr>
+<tr>
+<td><code>results_dir</code></td>
+<td>Directory in which to save exported JSON results files.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="data-file-structure">Data file structure</h4>
+<p>The TAAT assumes a file structure that enables multiple collections of material to be processed with one call of the taat.py script. The necessary structure is as follows: </p>
+<p><img alt="image" src="../img/taat_script_input_data_structure.png" /></p>
+<p>All folders and file names can be variable except for the data and input folders. Note that the input folder contains just a <em>single</em> audio file to be compared against (A). The data folder contains a collection of audio files that will be compared against the input file (B1, B2, B3, etc...) As part of the analysis the TAAT will create a series of similarity matrices such as: AxB1, AxB2, AxB3, etc...</p>
+<h4 id="config-file-parameters">Config file parameters</h4>
+<p>The script's config file is a simple text file that may be modified in any text editor. The parameters are mostly identical to those of the <a href="../reference/">TAAT Python API</a>, apart from the <code>tape_speed</code> parameter, which allows to test for variations in tape speed between the query and collection audio files. It works by creating a copy of the query file at each tape speed. For efficiency, a range of tape speed presets have been prepared to test a range of possible changes in pitch quality. Intervals are checked within an octave above and below the original file. The following table gives information on each of these presets:</p>
+<table>
+<thead>
+<tr>
+<th>Preset Name</th>
+<th>Preset Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>none</code></td>
+<td>Does not check for pitch shift.</td>
+</tr>
+<tr>
+<td><code>simple</code></td>
+<td>Checks for octave transposition.</td>
+</tr>
+<tr>
+<td><code>simple_variable</code></td>
+<td>Checks for pitch transpositions of an octave and a fifth.</td>
+</tr>
+<tr>
+<td><code>complex_variable</code></td>
+<td>Checks for pitch transpositions across a diatonic scale .</td>
+</tr>
+<tr>
+<td><code>chromatic_variable</code></td>
+<td>Checks for pitch transpositions across a chromatic scale.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-taat-navigator-max-patch">The TAAT Navigator Max patch</h3>
+<p>We also have a Max patch available, the TAAT Navigator (created by Dr Sam Gillies), which allows to load exported JSON output from a query result and display it as playable audio waveforms:</p>
+<p><img alt="image" src="../img/TAAT_Navigator_Max_Patch.png" /></p>
 
 
 
