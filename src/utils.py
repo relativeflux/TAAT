@@ -1,4 +1,5 @@
 import json
+import yaml
 
 def dedup(lst):
     ks = sorted(lst)
@@ -12,3 +13,7 @@ def json_write(data, filename: str, msg: str):
     with open(filename, "w") as f:
         if msg: print(msg)
         json.dump(data, f, indent=3)
+
+def yaml_read(filename: str):
+    with open(filename) as f:
+        return yaml.load(f, Loader=yaml.SafeLoader)

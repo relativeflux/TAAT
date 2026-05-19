@@ -1,0 +1,16 @@
+sr: 16000
+features:
+  - melspectrogram
+chunk_length: 10
+overlap: 0.5
+n_fft: 2048
+hop_length: 1024
+k: 3
+n_paths: 5
+metric: cosine
+tape_speed: simple
+prune: false
+score_threshold: 0
+path_margin: 2
+no_identity_match: true
+n_jobs: -1

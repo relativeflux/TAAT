@@ -146,40 +146,7 @@ def run_backend(filepath1, filepath2, backend="cross_similarity", sr=16000, feat
     return sim_matrix, rqa, paths
 
 
-def query(source_dir, query_filepath, backend="cross_similarity", features=["melspectrogram"], sr=16000, n_fft=2048, hop_length=1024, k=5, metric="cosine", n_paths=5, no_identity_match=True, verbose=False, zero_mean=False, n_filters=10):
-    """
-    Extracts feature data from the audio file supplied in _query_filepath_ and attempts to match it using cross-similarity scores with the audio files supplied in _source_dir_.
-
-    Parameters
-    ----------
-
-    **_source_dir_ (str)**: Path to the folder of files whose feature data will be extracted.
-
-    **_query_filepath_ (str)**: Path to the file to be queried against _source_dir_.
-
-    **_backend_ (str)**: Set to one of 'cross_similarity' or 'dtw' (dynamic time warping).
-
-    **_features_ (list[str]), optional**: List of features to extract in the analysis. Available features are: stft, melspectrogram, chroma_cqt, chroma_cens, mfcc, rms, tempogram, spectral_centroid, spectral_flatness, spectral_bandwidth and spectral_contrast.
-
-    **_sr_ (int), optional**: Sample rate for the audio loaded for the analysis.
-
-    **_n_fft_ (int), optional**: FFT analysis frame size.
-
-    **_hop_length_ (int), optional**: FFT analysis hop length.
-
-    **_k_ (int), optional**: Number of nearest-neighbours to compute for each analysis sample.
-
-    **_metric_ (str), optional**: Distance metric to use for the cross-similarity analysis.
-
-    **_n_paths_ (int), optional**: Number of RQA paths to compute.
-
-    **_no_identity_match_ (bool), optional**: Whether or not to include the queried file in the result, if it is itself already present in the source folder.
-
-    Returns
-    -------
-
-    **_query_result_ (QueryResult class instance)**
-    """
+def query_OLD(source_dir, query_filepath, backend="cross_similarity", features=["melspectrogram"], sr=16000, n_fft=2048, hop_length=1024, k=5, metric="cosine", n_paths=5, no_identity_match=True, verbose=False, zero_mean=False, n_filters=10):
     for dirpath, dirnames, filenames in os.walk(source_dir):
         matches = {}
         for filename in filenames:
@@ -309,9 +276,42 @@ class SuppressRuntimeWarnings:
         warnings.filterwarnings("default")
         del os.environ["PYTHONWARNINGS"]
 
-def query2(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, features=["melspectrogram"],
-           n_fft=2048, hop_length=1024, k=3, metric="cosine", n_paths=5, pitch_shift=0,
-           prune=False, score_threshold=0.25, path_margin=2, no_identity_match=True, n_jobs=-1):
+def query(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, features=["melspectrogram"],
+          n_fft=2048, hop_length=1024, k=3, metric="cosine", n_paths=5, pitch_shift=0,
+          prune=False, score_threshold=0.25, path_margin=2, no_identity_match=True, n_jobs=-1):
+    """
+    Extracts feature data from the audio file supplied in _query_filepath_ and attempts to match it using cross-similarity scores with the audio files supplied in _source_dir_.
+
+    Parameters
+    ----------
+
+    **_source_dir_ (str)**: Path to the folder of files whose feature data will be extracted.
+
+    **_query_filepath_ (str)**: Path to the file to be queried against _source_dir_.
+
+    **_backend_ (str)**: Set to one of 'cross_similarity' or 'dtw' (dynamic time warping).
+
+    **_features_ (list[str]), optional**: List of features to extract in the analysis. Available features are: stft, melspectrogram, chroma_cqt, chroma_cens, mfcc, rms, tempogram, spectral_centroid, spectral_flatness, spectral_bandwidth and spectral_contrast.
+
+    **_sr_ (int), optional**: Sample rate for the audio loaded for the analysis.
+
+    **_n_fft_ (int), optional**: FFT analysis frame size.
+
+    **_hop_length_ (int), optional**: FFT analysis hop length.
+
+    **_k_ (int), optional**: Number of nearest-neighbours to compute for each analysis sample.
+
+    **_metric_ (str), optional**: Distance metric to use for the cross-similarity analysis.
+
+    **_n_paths_ (int), optional**: Number of RQA paths to compute.
+
+    **_no_identity_match_ (bool), optional**: Whether or not to include the queried file in the result, if it is itself already present in the source folder.
+
+    Returns
+    -------
+
+    **_query_result_ (QueryResult class instance)**
+    """
     query_filepath_original = query_filepath
     with tempfile.TemporaryDirectory() as tmpdir:
         query_filepath = write_pitch_shifted_file(input_filepath=query_filepath,

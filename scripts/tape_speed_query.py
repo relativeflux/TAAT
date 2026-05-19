@@ -2,8 +2,8 @@ import os
 import json
 import numpy as np
 import argparse
-from utils import json_read
-from taat import query2
+from utils import yaml_read, json_write
+from taat import query
 
 
 def list_of_str(arg):
@@ -18,11 +18,12 @@ parser = argparse.ArgumentParser(
     description="TAAT Pitch Shift Query Script.",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--project_dir", type=str, required=True, help="Path to the folder containing the audio files for analysis.", metavar="\b")
-parser.add_argument("--config_file", type=str, default="scripts/default.config.json", help="Path to the JSON config file.", metavar="\b")
+parser.add_argument("--config_file", type=str, default="scripts/default.config.yaml", help="Path to the JSON config file.", metavar="\b")
 parser.add_argument("--results_dir", type=str, default="./results", help="Directory in which to save exported JSON results files.", metavar="\b")
 args = parser.parse_args()
 
-config = json_read(args.config_file)
+#config = json_read(args.config_file)
+config = yaml_read(args.config_file)
 args = dict(list(vars(args).items()) + list(config.items()))
 
 tape_speeds = {
@@ -68,16 +69,15 @@ def main(args):
                     else:
                         key = f"-{ts}"
                 print(f"Running query for {tape_speed} tape speed, pitch_shift={key}.")
-                q = query2(source_dir, query_filepath, sr=args["sr"], chunk_length=args["chunk_length"],
-                        overlap=args["overlap"], features=args["features"], n_fft=args["n_fft"], hop_length=args["hop_length"],
-                        k=args["k"], metric=args["metric"], n_paths=args["n_paths"], pitch_shift=s, prune=args["prune"],
-                        score_threshold=args["score_threshold"], path_margin=args["path_margin"],
-                        no_identity_match=args["no_identity_match"], n_jobs=args["n_jobs"])
+                q = query(source_dir, query_filepath, sr=args["sr"], chunk_length=args["chunk_length"],
+                          overlap=args["overlap"], features=args["features"], n_fft=args["n_fft"], hop_length=args["hop_length"],
+                          k=args["k"], metric=args["metric"], n_paths=args["n_paths"], pitch_shift=s, prune=args["prune"],
+                          score_threshold=args["score_threshold"], path_margin=args["path_margin"],
+                          no_identity_match=args["no_identity_match"], n_jobs=args["n_jobs"])
                 result[f"tape_speed={tape_speed}, pitch_shift={key}"] = q.result
         output_filepath = os.path.join(results_dir, f"{case_name}-results.json")
-        with open(output_filepath, "w") as f:
-            print(f"Writing TAAT tape speed analysis data for {query_filepath} to {output_filepath}")
-            json.dump(result, f, indent=3)
+        msg = f"Writing TAAT tape speed analysis data for {query_filepath} to {output_filepath}"
+        json_write(result, output_filepath, msg)
 
 if __name__ == "__main__":
     main(args)

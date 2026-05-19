@@ -20,6 +20,7 @@ dependencies = [
   "librosa",
   "scikit-image",
   "tqdm",
+  "pyyaml",
   "mkdocs",
   "mkdocstrings[python]",
   "mkdocs-material"

@@ -12,3 +12,5 @@ The toolkit helps to determine:
 In particular, TAAT was designed to address the shortcomings of existing tools, which fail to deal effectively with issues the process of tape archive digitisation invariably introduces, such as pitch fluctuations, tone saturation and frequency filtering.
 
 ### How it works
+
+The TAAT analysis engine works by first creating a timbral profile of its input audio files. Each file is processed in chunks, the size of which can be determined by the use. The chunks are then compared using cross similarity matrices and [recurrence quantification analysis](https://en.wikipedia.org/wiki/Recurrence_quantification_analysis), in order to establish a similarity score. Sequences of chunk scores represent similar timbral profiles that might inform a consistent musical progression. Results can then be output to the terminal, plotted as charts, or saved to a `JSON` file which can be interpreted further by other applications or programs.
