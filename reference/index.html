@@ -1258,7 +1258,8 @@
 <h4 id="taat.query--parameters">Parameters</h4>
 <p><strong><em>source_dir</em> (str)</strong>: Path to the folder of files whose feature data will be extracted.</p>
 <p><strong><em>query_filepath</em> (str)</strong>: Path to the file to be queried against <em>source_dir</em>.</p>
-<p><strong><em>backend</em> (str)</strong>: Set to one of 'cross_similarity' or 'dtw' (dynamic time warping).</p>
+<p><strong><em>chunk_length</em> (int)</strong>: Length of analysis chunks.</p>
+<p><strong><em>overlap</em> (float)</strong>: Size of chunk overlap.</p>
 <p><strong><em>features</em> (list[str]), optional</strong>: List of features to extract in the analysis. Available features are: stft, melspectrogram, chroma_cqt, chroma_cens, mfcc, rms, tempogram, spectral_centroid, spectral_flatness, spectral_bandwidth and spectral_contrast.</p>
 <p><strong><em>sr</em> (int), optional</strong>: Sample rate for the audio loaded for the analysis.</p>
 <p><strong><em>n_fft</em> (int), optional</strong>: FFT analysis frame size.</p>
@@ -1266,7 +1267,9 @@
 <p><strong><em>k</em> (int), optional</strong>: Number of nearest-neighbours to compute for each analysis sample.</p>
 <p><strong><em>metric</em> (str), optional</strong>: Distance metric to use for the cross-similarity analysis.</p>
 <p><strong><em>n_paths</em> (int), optional</strong>: Number of RQA paths to compute.</p>
+<p><strong><em>pitch_shift</em> (int), optional</strong>: Size of pitch shift for analysis of the query file.</p>
 <p><strong><em>no_identity_match</em> (bool), optional</strong>: Whether or not to include the queried file in the result, if it is itself already present in the source folder.</p>
+<p><strong><em>n_jobs</em> (int), optional</strong>: Number of concurrently running jobs. Each job corresponds to a query analysis chunk, so that multiple chunks are processed in parallel.</p>
 <h4 id="taat.query--returns">Returns</h4>
 <p><strong><em>query_result</em> (QueryResult class instance)</strong></p>
 
@@ -1352,7 +1355,13 @@
 <span class="normal">355</span>
 <span class="normal">356</span>
 <span class="normal">357</span>
-<span class="normal">358</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">query</span><span class="p">(</span><span class="n">source_dir</span><span class="p">,</span> <span class="n">query_filepath</span><span class="p">,</span> <span class="n">sr</span><span class="o">=</span><span class="mi">16000</span><span class="p">,</span> <span class="n">chunk_length</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">overlap</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;melspectrogram&quot;</span><span class="p">],</span>
+<span class="normal">358</span>
+<span class="normal">359</span>
+<span class="normal">360</span>
+<span class="normal">361</span>
+<span class="normal">362</span>
+<span class="normal">363</span>
+<span class="normal">364</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">query</span><span class="p">(</span><span class="n">source_dir</span><span class="p">,</span> <span class="n">query_filepath</span><span class="p">,</span> <span class="n">sr</span><span class="o">=</span><span class="mi">16000</span><span class="p">,</span> <span class="n">chunk_length</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">overlap</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;melspectrogram&quot;</span><span class="p">],</span>
           <span class="n">n_fft</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">hop_length</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;cosine&quot;</span><span class="p">,</span> <span class="n">n_paths</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">pitch_shift</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
           <span class="n">prune</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">score_threshold</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">path_margin</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">no_identity_match</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -1365,7 +1374,9 @@
 
 <span class="sd">    **_query_filepath_ (str)**: Path to the file to be queried against _source_dir_.</span>
 
-<span class="sd">    **_backend_ (str)**: Set to one of &#39;cross_similarity&#39; or &#39;dtw&#39; (dynamic time warping).</span>
+<span class="sd">    **_chunk_length_ (int)**: Length of analysis chunks.</span>
+
+<span class="sd">    **_overlap_ (float)**: Size of chunk overlap.</span>
 
 <span class="sd">    **_features_ (list[str]), optional**: List of features to extract in the analysis. Available features are: stft, melspectrogram, chroma_cqt, chroma_cens, mfcc, rms, tempogram, spectral_centroid, spectral_flatness, spectral_bandwidth and spectral_contrast.</span>
 
@@ -1381,7 +1392,11 @@
 
 <span class="sd">    **_n_paths_ (int), optional**: Number of RQA paths to compute.</span>
 
+<span class="sd">    **_pitch_shift_ (int), optional**: Size of pitch shift for analysis of the query file.</span>
+
 <span class="sd">    **_no_identity_match_ (bool), optional**: Whether or not to include the queried file in the result, if it is itself already present in the source folder.</span>
+
+<span class="sd">    **_n_jobs_ (int), optional**: Number of concurrently running jobs. Each job corresponds to a query analysis chunk, so that multiple chunks are processed in parallel.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
