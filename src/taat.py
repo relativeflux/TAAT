@@ -289,7 +289,9 @@ def query(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, fe
 
     **_query_filepath_ (str)**: Path to the file to be queried against _source_dir_.
 
-    **_backend_ (str)**: Set to one of 'cross_similarity' or 'dtw' (dynamic time warping).
+    **_chunk_length_ (int)**: Length of analysis chunks.
+
+    **_overlap_ (float)**: Size of chunk overlap.
 
     **_features_ (list[str]), optional**: List of features to extract in the analysis. Available features are: stft, melspectrogram, chroma_cqt, chroma_cens, mfcc, rms, tempogram, spectral_centroid, spectral_flatness, spectral_bandwidth and spectral_contrast.
 
@@ -305,8 +307,12 @@ def query(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, fe
 
     **_n_paths_ (int), optional**: Number of RQA paths to compute.
 
+    **_pitch_shift_ (int), optional**: Size of pitch shift for analysis of the query file.
+
     **_no_identity_match_ (bool), optional**: Whether or not to include the queried file in the result, if it is itself already present in the source folder.
 
+    **_n_jobs_ (int), optional**: Number of concurrently running jobs. Each job corresponds to a query analysis chunk, so that multiple chunks are processed in parallel.
+    
     Returns
     -------
 
