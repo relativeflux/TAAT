@@ -35,7 +35,9 @@ tape_speeds = {
 
 def main(args):
     project_dir = args["project_dir"]
+    project_dir = project_dir.replace("\\", "")
     results_dir = args["results_dir"]
+    results_dir = results_dir.replace("\\", "")
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
     for case_name in sorted(os.listdir(project_dir)):
