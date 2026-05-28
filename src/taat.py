@@ -4,12 +4,13 @@ import pprint
 import warnings
 import tempfile
 import numpy as np
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, Memory
 import librosa
 import soundfile as sf
 from data_loader import *
 from cross_similarity import *
 from dtw import dtw
+from utils import get_dir_size
 
 
 class QueryResult:
@@ -215,6 +216,10 @@ def parse_query_output(query_filepath, query_output):
         }
     return result
 
+cache_dir = "./cache"
+memory = Memory(cache_dir, verbose=0)
+get_xsim_multi2 = memory.cache(get_xsim_multi2)
+
 def get_query_result(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, features=["melspectrogram"],
                      n_fft=2048, hop_length=1024, k=5, metric="cosine", n_paths=5, enhance=True, zero_mean=False,
                      n_filters=5, no_identity_match=True, n_jobs=-1):
@@ -263,10 +268,10 @@ def get_query_result(source_dir, query_filepath, sr=16000, chunk_length=30, over
         results[f"results_{k}"] = entry
     return results
 
-def parse_seg_vals(filtered, s=1000, places=3):
+def parse_seg_vals(segs, s=1000, places=3):
     base_str = f"%.{places}f"
     return [[float(base_str % (i*s)), float(base_str % (j*s))] \
-            for i, j in filtered]
+            for i, j in segs]
 
 class SuppressRuntimeWarnings:
     def __enter__(self):
@@ -276,9 +281,9 @@ class SuppressRuntimeWarnings:
         warnings.filterwarnings("default")
         del os.environ["PYTHONWARNINGS"]
 
-def query(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, features=["melspectrogram"],
-          n_fft=2048, hop_length=1024, k=3, metric="cosine", n_paths=5, pitch_shift=0,
-          prune=False, score_threshold=0.25, path_margin=2, no_identity_match=True, n_jobs=-1):
+def query(source_dir, query_filepath, sr=16000, chunk_length=10, overlap=0.5, features=["melspectrogram"],
+          n_fft=2048, hop_length=1024, k=3, metric="cosine", n_paths=5, pitch_shift=0, prune=False,
+          score_threshold=0.25, path_margin=2, no_identity_match=True, n_jobs=-1):
     """
     Extracts feature data from the audio file supplied in _query_filepath_ and attempts to match it using cross-similarity scores with the audio files supplied in _source_dir_.
 
@@ -346,7 +351,8 @@ def query(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, fe
         with SuppressRuntimeWarnings():
             matches = get_query_result(source_dir=source_dir, query_filepath=query_filepath, sr=sr, chunk_length=chunk_length, overlap=overlap,
                                        features=features, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, n_paths=n_paths,
-                                       enhance=True, zero_mean=prune, n_filters=5, no_identity_match=no_identity_match, n_jobs=n_jobs)
+                                       enhance=True, zero_mean=prune, n_filters=5, no_identity_match=no_identity_match,
+                                       n_jobs=n_jobs)
         mm = get_score_matrices(source_dir=source_dir,
                                 query_filepath=query_filepath,
                                 data=matches.values(),

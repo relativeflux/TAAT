@@ -15,6 +15,7 @@ site/
 
 # Project
 /output/*
+/cache/*
 !/output/.gitkeep
 *.json
 !/scripts/default.config.json
