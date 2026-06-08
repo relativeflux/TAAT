@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 import pprint
 import warnings
 import tempfile
@@ -8,9 +7,8 @@ from joblib import Parallel, delayed, Memory
 import librosa
 import soundfile as sf
 from data_loader import *
-from cross_similarity import *
+import cross_similarity
 from dtw import dtw
-from utils import get_dir_size
 
 
 class QueryResult:
@@ -216,13 +214,11 @@ def parse_query_output(query_filepath, query_output):
         }
     return result
 
-cache_dir = "./cache"
-memory = Memory(cache_dir, verbose=0)
-get_xsim_multi2 = memory.cache(get_xsim_multi2)
-
 def get_query_result(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, features=["melspectrogram"],
                      n_fft=2048, hop_length=1024, k=5, metric="cosine", n_paths=5, enhance=True, zero_mean=False,
-                     n_filters=5, no_identity_match=True, n_jobs=-1):
+                     n_filters=5, no_identity_match=True, n_jobs=-1, cache_dir="./cache"):
+    memory = Memory(cache_dir, verbose=0)
+    get_xsim_multi2 = memory.cache(cross_similarity.get_xsim_multi2)
     def check_identity_match(filename):
         return (no_identity_match and filename != os.path.basename(query_filepath) or (not no_identity_match))
     def print_fn(filename):
@@ -235,12 +231,13 @@ def get_query_result(source_dir, query_filepath, sr=16000, chunk_length=30, over
                                                                   fft_size=n_fft, hop_length=hop_length,
                                                                   k=k, metric=metric, n_paths=n_paths,
                                                                   enhance=enhance, zero_mean=zero_mean, n_filters=n_filters)
-        paths, _ = get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
+        paths, _ = cross_similarity.get_time_formatted_paths(query_paths, n_fft=n_fft, hop_length=hop_length)
         scores = []
         query_segs = []
         ref_segs = []
         for (i, (ref_start, ref_stop, query_start, query_stop)) in enumerate(paths):
-            scores.append(get_path_score(ref_rqa, query_rqa, ref_paths[i], query_paths[i]))
+            score = cross_similarity.get_path_score(ref_rqa, query_rqa, ref_paths[i], query_paths[i])
+            scores.append(score)
             query_segs.append([query_start, query_stop])
             ref_segs.append([ref_start, ref_stop])
         return {
@@ -283,7 +280,7 @@ class SuppressRuntimeWarnings:
 
 def query(source_dir, query_filepath, sr=16000, chunk_length=10, overlap=0.5, features=["melspectrogram"],
           n_fft=2048, hop_length=1024, k=3, metric="cosine", n_paths=5, pitch_shift=0, prune=False,
-          score_threshold=0.25, path_margin=2, no_identity_match=True, n_jobs=-1):
+          score_threshold=0.25, path_margin=2, no_identity_match=True, n_jobs=-1, cache_dir="./cache"):
     """
     Extracts feature data from the audio file supplied in _query_filepath_ and attempts to match it using cross-similarity scores with the audio files supplied in _source_dir_.
 
@@ -318,6 +315,8 @@ def query(source_dir, query_filepath, sr=16000, chunk_length=10, overlap=0.5, fe
 
     **_n_jobs_ (int), optional**: Number of concurrently running jobs. Each job corresponds to a query analysis chunk, so that multiple chunks are processed in parallel.
     
+    **_cache_dir_ (str), optional**: Directory into which cached analysis data will be stored.
+
     Returns
     -------
 
@@ -352,7 +351,7 @@ def query(source_dir, query_filepath, sr=16000, chunk_length=10, overlap=0.5, fe
             matches = get_query_result(source_dir=source_dir, query_filepath=query_filepath, sr=sr, chunk_length=chunk_length, overlap=overlap,
                                        features=features, n_fft=n_fft, hop_length=hop_length, k=k, metric=metric, n_paths=n_paths,
                                        enhance=True, zero_mean=prune, n_filters=5, no_identity_match=no_identity_match,
-                                       n_jobs=n_jobs)
+                                       n_jobs=n_jobs, cache_dir=cache_dir)
         mm = get_score_matrices(source_dir=source_dir,
                                 query_filepath=query_filepath,
                                 data=matches.values(),
@@ -444,7 +443,7 @@ def get_merged_path(path, chunk_length, overlap, margin):
     ref_segs = np.array([d["collection_segments"] for d in path])
     ref_segs = [seg + ref_offsets[i]*1000 for (i, seg) in enumerate(ref_segs)]
     ranges = zip_ranges(query_segs, ref_segs)
-    merged = merge_ranges(ranges, margin)
+    merged = cross_similarity.merge_ranges(ranges, margin)
     return {
         "query_file": path[0]["query_file"].split(" chunk_")[0],
         "collection_file": os.path.basename(path[0]["collection_file"]).split(" chunk_")[0],
