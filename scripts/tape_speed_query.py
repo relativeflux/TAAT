@@ -20,7 +20,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("--project_dir", type=str, required=True, help="Path to the folder containing the audio files for analysis.", metavar="\b")
 parser.add_argument("--config_file", type=str, default="scripts/default.config.yaml", help="Path to the JSON config file.", metavar="\b")
 parser.add_argument("--results_dir", type=str, default="./results", help="Directory in which to save exported JSON results files.", metavar="\b")
-parser.add_argument("--cache_dir", type=str, default="./cache", help="Directory into which cached analysis data will be stored.", metavar="\b")
+parser.add_argument("--cache_dir", type=str, default=None, help="Directory into which cached analysis data will be stored.", metavar="\b")
 args = parser.parse_args()
 
 #config = json_read(args.config_file)

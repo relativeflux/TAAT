@@ -216,7 +216,7 @@ def parse_query_output(query_filepath, query_output):
 
 def get_query_result(source_dir, query_filepath, sr=16000, chunk_length=30, overlap=0.5, features=["melspectrogram"],
                      n_fft=2048, hop_length=1024, k=5, metric="cosine", n_paths=5, enhance=True, zero_mean=False,
-                     n_filters=5, no_identity_match=True, n_jobs=-1, cache_dir="./cache"):
+                     n_filters=5, no_identity_match=True, n_jobs=-1, cache_dir=None):
     memory = Memory(cache_dir, verbose=0)
     get_xsim_multi2 = memory.cache(cross_similarity.get_xsim_multi2)
     def check_identity_match(filename):
@@ -280,7 +280,7 @@ class SuppressRuntimeWarnings:
 
 def query(source_dir, query_filepath, sr=16000, chunk_length=10, overlap=0.5, features=["melspectrogram"],
           n_fft=2048, hop_length=1024, k=3, metric="cosine", n_paths=5, pitch_shift=0, prune=False,
-          score_threshold=0.25, path_margin=2, no_identity_match=True, n_jobs=-1, cache_dir="./cache"):
+          score_threshold=0.25, path_margin=2, no_identity_match=True, n_jobs=-1, cache_dir=None):
     """
     Extracts feature data from the audio file supplied in _query_filepath_ and attempts to match it using cross-similarity scores with the audio files supplied in _source_dir_.
 
