@@ -53,6 +53,9 @@ def tempogram(y, sr=16000, fft_size=2048, hop_length=1024):
     oenv = librosa.onset.onset_strength(y=y, sr=sr, hop_length=hop_length)
     return librosa.feature.tempogram(onset_envelope=oenv, sr=sr, hop_length=hop_length)
 
+def tonnetz(y, sr=16000, fft_size=2048, hop_length=1024):
+    return librosa.feature.tonnetz(y=y, sr=sr)
+
 def apply_features(y, features=["melspectrogram", "chroma_cqt"], sr=16000, n_fft=2048, hop_length=1024):
     feature_data = [args[fname](y, sr=sr, fft_size=n_fft, hop_length=hop_length) for fname in features]
     return np.vstack(feature_data)
