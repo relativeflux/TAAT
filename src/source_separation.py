@@ -136,3 +136,23 @@ def decompose_spectrum(filepath, sr=16000, n_fft=1024, hop_length=1024, n_comp=1
     ax['D'].label_outer()
     fig.colorbar(img, ax=list(ax.values()), format="%+2.f dB")
     plt.show()
+
+def source_separation_v3(y, sr=16000, margins=[2,10], power=2):
+    mag, phase = librosa.magphase(librosa.stft(y))
+    # Compute smooth background filter via median/nearest neighbor filtering
+    s_filter = librosa.decompose.nn_filter(
+        mag,
+        aggregate=np.median,
+        metric="cosine",
+        width=int(librosa.time_to_frames(2, sr=sr)))
+    s_filter = np.minimum(mag, s_filter)
+    margin_i, margin_v = margins
+    mask_i = librosa.util.softmask(s_filter, margin_i * (mag - s_filter), power=power)
+    mask_v = librosa.util.softmask(mag - s_filter, margin_v * s_filter, power=power)
+    # Extract foreground and background spectra
+    foreground = mask_v * mag
+    background = mask_i * mag
+    # Invert back to audio time series
+    foreground = librosa.istft(foreground * phase)
+    background = librosa.istft(background * phase)
+    return foreground, background

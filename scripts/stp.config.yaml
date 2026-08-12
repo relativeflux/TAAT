@@ -1,0 +1,10 @@
+sr: 16000
+chunk_length: 10
+overlap: 0.5
+n_paths: 1
+tape_speed: simple
+prune: false
+score_threshold: 0.0
+path_margin: 2
+no_identity_match: true
+n_jobs: -1

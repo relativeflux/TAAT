@@ -156,10 +156,10 @@ def get_stp_match(filepath1, filepath2, sr=16000, chunk_length=2.0, hop_length=0
     arr_b_norm = (arr2 - mean) / std
     # Get Cosine Similarity Matrix 
     sim_matrix = get_similarity_matrix(arr_a_norm, arr_b_norm)
+    if enhance:
+        sim_matrix = librosa.segment.path_enhance(sim_matrix, 64, n_filters=n_filters, zero_mean=zero_mean)
     # Apply bidirectional consensus filtering
     score, _ = apply_bidirectional_consensus_filter(sim_matrix)
-    #sim_matrix = librosa.segment.path_enhance(sim_matrix, 64, n_filters=5)
-    #rqa, path = librosa.sequence.rqa(sim_matrix)
     rqa_orig = librosa.sequence.rqa(sim_matrix)
     path = prune_rqa_path(rqa_orig[1])
     sim_matrix_copy = copy.deepcopy(sim_matrix)
@@ -199,10 +199,10 @@ def get_stp_match_v2(y1, y2, sr=16000, chunk_length=2.0, hop_length=0.5,
     arr_b_norm = (arr2 - mean) / std
     # Get Cosine Similarity Matrix 
     sim_matrix = get_similarity_matrix(arr_a_norm, arr_b_norm)
+    if enhance:
+        sim_matrix = librosa.segment.path_enhance(sim_matrix, 64, n_filters=n_filters, zero_mean=zero_mean)
     # Apply bidirectional consensus filtering
     score, _ = apply_bidirectional_consensus_filter(sim_matrix)
-    #sim_matrix = librosa.segment.path_enhance(sim_matrix, 64, n_filters=5)
-    #rqa, path = librosa.sequence.rqa(sim_matrix)
     rqa_orig = librosa.sequence.rqa(sim_matrix)
     path = prune_rqa_path(rqa_orig[1])
     sim_matrix_copy = copy.deepcopy(sim_matrix)
@@ -232,6 +232,21 @@ def get_time_formatted_stp_paths(paths, sr=16000, hop_length=0.5):
     durs = [(r-p, s-q) for [p, r, q, s] in paths_]
     return paths_, durs
 
+def get_subpaths(path, margin=3):
+    result = []
+    for [x, y] in path:
+        if not result:
+            result.append([[x, y]])
+        else:
+            last_elt = result[-1][-1]
+            #if ((x>last_elt[0]) and (x-margin<=last_elt[0])) and \
+               #((y>last_elt[1]) and (y-margin<=last_elt[1])):
+            #if (x-margin<=last_elt[0]) and (y-margin<=last_elt[1]):
+            if (abs(x-last_elt[0])<=margin) and (abs(y-last_elt[1])<=margin):
+                result[-1].append([x, y])
+            else:
+                result.append([[x, y]])
+    return [np.array(elt) for elt in result]
 
 '''
 def test(filepath1, filepath2, sr=16000, features=["melspectrogram"],
