@@ -145,7 +145,7 @@ def get_stp_match(filepath1, filepath2, sr=16000, chunk_length=2.0, hop_length=0
     profiles2 = get_gesture_pool(y2, chunk_length, hop_length, sr)
     # Fallback to absolute zero match if either track is structurally silent
     if len(profiles1) == 0 or len(profiles2) == 0:
-        return 0.0
+        return 0.0, None, None, [] #return 0.0
     arr1 = np.array(profiles1)
     arr2 = np.array(profiles2)
     # Joint Z-Score Normalisation to equalise standard variance anomalies
@@ -188,7 +188,7 @@ def get_stp_match_v2(y1, y2, sr=16000, chunk_length=2.0, hop_length=0.5,
     profiles2 = get_gesture_pool(y2, chunk_length, hop_length, sr)
     # Fallback to absolute zero match if either track is structurally silent
     if len(profiles1) == 0 or len(profiles2) == 0:
-        return 0.0
+        return 0.0, None, None, [] #return 0.0
     arr1 = np.array(profiles1)
     arr2 = np.array(profiles2)
     # Joint Z-Score Normalisation to equalise standard variance anomalies

@@ -21,6 +21,7 @@ site/
 !/scripts/default.config.json
 *.html
 *.wav
+*.WAV
 *.zip
 *.log
 *.ipynb
