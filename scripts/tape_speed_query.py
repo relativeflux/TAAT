@@ -14,6 +14,15 @@ def list_of_str(arg):
         .split(", ")[0] \
         .split(",")
 
+def check_bool(value):
+    val = str(value).upper()
+    if 'TRUE'.startswith(val):
+        return True
+    elif 'FALSE'.startswith(val):
+        return False
+    else:
+        raise ValueError('Argument is neither `True` nor `False`')
+
 parser = argparse.ArgumentParser(
     description="TAAT Pitch Shift Query Script.",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
