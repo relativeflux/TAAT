@@ -280,7 +280,8 @@ class SuppressRuntimeWarnings:
 
 def query(source_dir, query_filepath, sr=16000, chunk_length=10, overlap=0.5, features=["melspectrogram"],
           n_fft=2048, hop_length=1024, k=3, metric="cosine", n_paths=5, pitch_shift=0, prune=False,
-          score_threshold=0.25, path_margin=2, no_identity_match=True, n_jobs=-1, cache_dir=None):
+          score_threshold=0.25, path_margin=2, no_identity_match=True, n_jobs=-1,
+          cache_dir=None, debug=False):
     """
     Extracts feature data from the audio file supplied in _query_filepath_ and attempts to match it using cross-similarity scores with the audio files supplied in _source_dir_.
 
@@ -364,6 +365,7 @@ def query(source_dir, query_filepath, sr=16000, chunk_length=10, overlap=0.5, fe
         for i, (filepath, m) in enumerate(qr.matrices.items()):
             rqa, path = librosa.sequence.rqa(m)
             f = filter_result_for_path(filepath, qr._result.values(), path)
+            if debug == True: print(filepath)
             merged = get_merged_path(f, chunk_length, overlap, path_margin)
             qr.result[f"results_{i}"] = merged
         return qr

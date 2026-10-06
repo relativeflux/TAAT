@@ -21,6 +21,7 @@ parser.add_argument("--project_dir", type=str, required=True, help="Path to the 
 parser.add_argument("--config_file", type=str, default="scripts/default.config.yaml", help="Path to the JSON config file.", metavar="\b")
 parser.add_argument("--results_dir", type=str, default="./results", help="Directory in which to save exported JSON results files.", metavar="\b")
 parser.add_argument("--cache_dir", type=str, default=None, help="Directory into which cached analysis data will be stored.", metavar="\b")
+parser.add_argument("--debug", type=check_bool, default=False, help="Whether to print debugging messages.", metavar="\b")
 args = parser.parse_args()
 
 #config = json_read(args.config_file)
@@ -28,6 +29,7 @@ config = yaml_read(args.config_file)
 args = dict(list(vars(args).items()) + list(config.items()))
 
 tape_speeds = {
+    "None": [0],
     "simple": [12],
     "simple_variable": [4, 7, 12],
     "complex_variable": [2, 4, 5, 7, 9, 11, 12],
@@ -64,7 +66,8 @@ def main(args):
         tape_speed = args["tape_speed"]
         result = {}
         for ts in tape_speeds[tape_speed]:
-            for s in [0, ts, -ts]:
+            speeds = [ts] if tape_speed=="None" else [ts, -ts]
+            for s in speeds:
                 key = 0
                 if s!=0:
                     if s==ts:
@@ -76,7 +79,7 @@ def main(args):
                           overlap=args["overlap"], features=args["features"], n_fft=args["n_fft"], hop_length=args["hop_length"],
                           k=args["k"], metric=args["metric"], n_paths=args["n_paths"], pitch_shift=s, prune=args["prune"],
                           score_threshold=args["score_threshold"], path_margin=args["path_margin"], no_identity_match=args["no_identity_match"],
-                          n_jobs=args["n_jobs"], cache_dir=args["cache_dir"])
+                          n_jobs=args["n_jobs"], debug=args["debug"], cache_dir=args["cache_dir"])
                 result[f"tape_speed={tape_speed}, pitch_shift={key}"] = q.result
         output_filepath = os.path.join(results_dir, f"{case_name}-results.json")
         msg = f"Writing TAAT tape speed analysis data for {query_filepath} to {output_filepath}"
