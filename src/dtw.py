@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import librosa
+from scipy.spatial.distance import cdist
 import matplotlib.pyplot as plt
 from cross_similarity import butter_bandpass_filter, apply_features, plot_xsim_multi
 
@@ -35,3 +36,37 @@ def plot_dtw(D, wp, filepath1, filepath2, hop_length=1024):
 
 def plot_dtw(sim_matrix, rqa, paths):
     plot_xsim_multi(sim_matrix, rqa, paths)
+
+####################################################################################
+
+def get_dtw_match(filepath1, filepath2, sr=16000, hop_length=512):
+    # Load audio files
+    y1, _ = librosa.load(filepath1, sr=sr, mono=True)
+    y2, _ = librosa.load(filepath2, sr=sr, mono=True)
+    # Extract Robust Features (Chroma STFT focuses on pitch/harmony)
+    # Transpose them so that frames are along the rows (axis 0) for distance calculations
+    chroma1 = librosa.feature.chroma_stft(y=y1, sr=sr, hop_length=hop_length).T
+    chroma2 = librosa.feature.chroma_stft(y=y2, sr=sr, hop_length=hop_length).T
+    # Compute Cross-Distance Cost Matrix
+    # Using "cosine" distance makes the comparison invariant to volume/amplitude differences
+    cost_matrix = cdist(chroma1, chroma2, metric="cosine")
+    # Perform Dynamic Time Warping
+    # librosa.sequence.dtw finds the minimum cost path through the cost matrix
+    # subseq=True allows for partial matching if one file is a subset of the other
+    D, path = librosa.sequence.dtw(C=cost_matrix, subseq=False)
+    # Extract alignment coordinates
+    # The path returned by librosa is inverted (starts from the end), so we flip it
+    path_flipped = np.flip(path, axis=0)
+    path_x_coords = path_flipped[:, 0]
+    path_y_coords = path_flipped[:, 1]
+    # 6. Calculate a Normalized Similarity Score
+    # Total minimum alignment cost
+    total_cost = D[-1, -1] 
+    # Worst-case scenario cost (if every step suffered maximum cosine distance of 2.0)
+    max_possible_cost = 2.0 * len(path_x_coords)
+    # Convert distance into a normalized similarity percentage (0.0 to 1.0)
+    normalized_score = 1.0 - (total_cost / max_possible_cost)
+    # Ensure precision bounds
+    normalized_score = float(np.clip(normalized_score, 0.0, 1.0))
+    return normalized_score, path_x_coords, path_y_coords
+

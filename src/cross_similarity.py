@@ -248,6 +248,8 @@ def is_overlapping(start1, end1, start2, end2, margin=2):
     return (abs(end1-start2) <= margin or abs(end2-start1) <= margin)
 
 def merge_ranges(matches, margin=2):
+    if (len(matches)==0):
+        return []
     result = [matches[0]]
     for head in matches[1:]:
         tail = result[-1]

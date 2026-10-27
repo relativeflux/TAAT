@@ -6,8 +6,8 @@ import librosa
 from joblib import Parallel, delayed
 import spectromorphic_temporal_profile as stp
 from data_loader import *
-from taat import QueryResult, get_score_matrices, filter_result_for_path, get_merged_path, parse_seg_vals, SuppressRuntimeWarnings
-from utils import yaml_read, json_write
+from taat import QueryResult, get_score_matrices, filter_result_for_path, get_merged_path, parse_seg_vals, SuppressRuntimeWarnings, bail_on_silent_files
+from utils import yaml_read, json_write, is_silent
 
 
 def check_bool(value):
@@ -108,6 +108,8 @@ def query(source_dir, query_filepath, sr=16000, chunk_length=10, overlap=0.5,
         qr = QueryResult(query_filepath=query_filepath_original,
                         result={},
                         info=info)
+        if bail_on_silent_files(source_dir, chunk_length, overlap):
+            return qr
         n_query_chunks = get_n_chunks(query_filepath, chunk_length, overlap)
         if (n_query_chunks==1):
             warning_msg = f"Skipping analysis of query file '{query_filepath_original}' with chunk_length={chunk_length} "\
@@ -117,8 +119,8 @@ def query(source_dir, query_filepath, sr=16000, chunk_length=10, overlap=0.5,
             return qr
         with SuppressRuntimeWarnings():
             matches = get_query_result(source_dir=source_dir, query_filepath=query_filepath, sr=sr, chunk_length=chunk_length, overlap=overlap, n_paths=n_paths,
-                                        enhance=False, zero_mean=prune, n_filters=5, no_identity_match=no_identity_match,
-                                        n_jobs=n_jobs)
+                                       enhance=False, zero_mean=prune, n_filters=5, no_identity_match=no_identity_match,
+                                       n_jobs=n_jobs)
         mm = get_score_matrices(source_dir=source_dir,
                                 query_filepath=query_filepath,
                                 data=matches.values(),
@@ -179,7 +181,6 @@ def main():
                           overlap=args["overlap"], n_paths=args["n_paths"], pitch_shift=s, prune=args["prune"],
                           score_threshold=0.0, path_margin=args["path_margin"], no_identity_match=args["no_identity_match"],
                           n_jobs=args["n_jobs"], debug=args["debug"])
-                #q = query(source_dir, query_filepath, sr=16000, chunk_length=10, overlap=0.5)
                 result[f"tape_speed={tape_speed}, pitch_shift={key}"] = q.result
         output_filepath = os.path.join(results_dir, f"{case_name}-results.json")
         msg = f"Writing TAAT tape speed analysis data for {query_filepath} to {output_filepath}"

@@ -9,6 +9,7 @@ import soundfile as sf
 from data_loader import *
 import cross_similarity
 from dtw import dtw
+from utils import is_silent
 
 
 class QueryResult:
@@ -278,6 +279,33 @@ class SuppressRuntimeWarnings:
         warnings.filterwarnings("default")
         del os.environ["PYTHONWARNINGS"]
 
+def filter_silent_files(source_dir, chunk_length, overlap=1.0, filetype=".wav",
+                        threshold=0.5):
+    results = []
+    for dirpath, _, filenames in os.walk(source_dir):
+        for filename in filenames:
+            if filename.endswith(filetype):
+                filepath = os.path.join(dirpath, filename)
+                res = []
+                for (idx, chunk) in stream(filepath, chunk_length=chunk_length, overlap=overlap,
+                                           show_progress_bar=False):
+                    res.append(is_silent(chunk))
+                if (res.count(True) / len(res)) >= threshold:
+                    results.append(filepath)
+    return results
+
+def bail_on_silent_files(source_dir, chunk_length=10, overlap=1.0, threshold=0.5):
+    res = filter_silent_files(source_dir, chunk_length, overlap,
+                              filetype=".wav", threshold=threshold)
+    if res:
+        print(f"Bailing the analysis - the following files contain silence at or above the threshold of {threshold}:")
+        for filepath in res:
+            print(filepath)
+        print("Please remove the listed file(s) or, where appropriate, add amplification.")
+        return True
+    else:
+        return False
+
 def query(source_dir, query_filepath, sr=16000, chunk_length=10, overlap=0.5, features=["melspectrogram"],
           n_fft=2048, hop_length=1024, k=3, metric="cosine", n_paths=5, pitch_shift=0, prune=False,
           score_threshold=0.25, path_margin=2, no_identity_match=True, n_jobs=-1,
@@ -341,6 +369,8 @@ def query(source_dir, query_filepath, sr=16000, chunk_length=10, overlap=0.5, fe
         qr = QueryResult(query_filepath=query_filepath_original,
                          result={},
                          info=info)
+        if bail_on_silent_files(source_dir, chunk_length, overlap):
+            return qr
         n_query_chunks = get_n_chunks(query_filepath, chunk_length, overlap)
         if (n_query_chunks==1):
             warning_msg = f"Skipping analysis of query file '{query_filepath_original}' with chunk_length={chunk_length} "\

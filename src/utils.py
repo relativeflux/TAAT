@@ -1,5 +1,7 @@
 import json
 import yaml
+import numpy as np
+import librosa
 
 
 def dedup(lst):
@@ -27,3 +29,15 @@ def get_dir_size(path):
         elif entry.is_dir():
             size += get_dir_size(entry.path)
     return size
+
+def is_silent(y, threshold_db=-60.0):
+    # Handle completely empty/zero arrays directly
+    if len(y) == 0 or np.all(y == 0):
+        return True
+    # Compute Root Mean Square (RMS) energy per frame
+    rms_frames = librosa.feature.rms(y=y)
+    # Convert power/amplitude to Decibels (dB)
+    rms_db = librosa.amplitude_to_db(rms_frames, ref=1.0)
+    # Check if the loudest frame is quieter than the threshold
+    return bool(np.max(rms_db) < threshold_db)
+
