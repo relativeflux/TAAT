@@ -306,6 +306,17 @@ def bail_on_silent_files(source_dir, chunk_length=10, overlap=1.0, threshold=0.5
     else:
         return False
 
+def dataset_sanity_check(source_dir, chunk_length=10, overlap=1.0, silence_threshold=0.5):
+    res = filter_silent_files(source_dir, chunk_length, overlap,
+                              filetype=".wav", threshold=threshold)
+    if res:
+        print(f"The following files contain silence at or above the threshold of {silence_threshold}:")
+        for filepath in res:
+            print(filepath)
+        print("Before running a TAAT query please remove the listed file(s) or, where appropriate, add amplification.")
+    else:
+        print(f"The Dataset at {source_dir} passed the sanity check, and it's safe to run a TAAT query using it.")
+
 def query(source_dir, query_filepath, sr=16000, chunk_length=10, overlap=0.5, features=["melspectrogram"],
           n_fft=2048, hop_length=1024, k=3, metric="cosine", n_paths=5, pitch_shift=0, prune=False,
           score_threshold=0.25, path_margin=2, no_identity_match=True, n_jobs=-1,
@@ -369,8 +380,6 @@ def query(source_dir, query_filepath, sr=16000, chunk_length=10, overlap=0.5, fe
         qr = QueryResult(query_filepath=query_filepath_original,
                          result={},
                          info=info)
-        if bail_on_silent_files(source_dir, chunk_length, overlap):
-            return qr
         n_query_chunks = get_n_chunks(query_filepath, chunk_length, overlap)
         if (n_query_chunks==1):
             warning_msg = f"Skipping analysis of query file '{query_filepath_original}' with chunk_length={chunk_length} "\

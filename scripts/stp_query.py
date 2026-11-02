@@ -108,8 +108,8 @@ def query(source_dir, query_filepath, sr=16000, chunk_length=10, overlap=0.5,
         qr = QueryResult(query_filepath=query_filepath_original,
                         result={},
                         info=info)
-        if bail_on_silent_files(source_dir, chunk_length, overlap):
-            return qr
+        # if bail_on_silent_files(source_dir, chunk_length, overlap):
+            # return qr
         n_query_chunks = get_n_chunks(query_filepath, chunk_length, overlap)
         if (n_query_chunks==1):
             warning_msg = f"Skipping analysis of query file '{query_filepath_original}' with chunk_length={chunk_length} "\

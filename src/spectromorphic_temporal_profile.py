@@ -248,6 +248,52 @@ def get_subpaths(path, margin=3):
                 result.append([[x, y]])
     return [np.array(elt) for elt in result]
 
+def get_stp_match_v3(y1, y2, sr=16000, chunk_length=2.0, hop_length=0.5,
+                     n_paths=5, enhance=False, n_filters=5, zero_mean=False):
+    """
+    Compares two audio clips using spectromorphic temporal profiling. Uses
+    dynamic time warping over sliding structural windows to compute a match score
+    between 0.0 and 1.0.
+    """
+    # Process Clip A into overlapping gesture pools
+    profiles1 = get_gesture_pool(y1, chunk_length, hop_length, sr)
+    # Process Clip B into overlapping gesture pools
+    profiles2 = get_gesture_pool(y2, chunk_length, hop_length, sr)
+    # Fallback to absolute zero match if either track is structurally silent
+    if len(profiles1) == 0 or len(profiles2) == 0:
+        return 0.0, None, None, [] #return 0.0
+    arr1 = np.array(profiles1)
+    arr2 = np.array(profiles2)
+    # Joint Z-Score Normalisation to equalise standard variance anomalies
+    combined = np.vstack([arr1, arr2])
+    mean = np.mean(combined, axis=0)
+    std = np.std(combined, axis=0) + 1e-8
+    arr_a_norm = (arr1 - mean) / std
+    arr_b_norm = (arr2 - mean) / std
+    # Compute Cross-Distance Cost Matrix
+    # Using "cosine" distance makes the comparison invariant to volume/amplitude differences
+    cost_matrix = scipy.spatial.distance.cdist(arr_a_norm, arr_b_norm, metric="cosine")
+    # Perform Dynamic Time Warping
+    # librosa.sequence.dtw finds the minimum cost path through the cost matrix
+    # subseq=True allows for partial matching if one file is a subset of the other
+    D, path = librosa.sequence.dtw(C=cost_matrix, subseq=False)
+    # Extract alignment coordinates
+    # The path returned by librosa is inverted (starts from the end), so we flip it
+    path_flipped = np.flip(path, axis=0)
+    path_x_coords = path_flipped[:, 0]
+    path_y_coords = path_flipped[:, 1]
+    # 6. Calculate a Normalized Similarity Score
+    # Total minimum alignment cost
+    total_cost = D[-1, -1] 
+    # Worst-case scenario cost (if every step suffered maximum cosine distance of 2.0)
+    max_possible_cost = 2.0 * len(path_x_coords)
+    # Convert distance into a normalized similarity percentage (0.0 to 1.0)
+    normalized_score = 1.0 - (total_cost / max_possible_cost)
+    # Ensure precision bounds
+    normalized_score = float(np.clip(normalized_score, 0.0, 1.0))
+    return normalized_score, path_x_coords, path_y_coords
+
+
 '''
 def test(filepath1, filepath2, sr=16000, features=["melspectrogram"],
          n_fft=2048, hop_length=1024, k=3, enhance=True):
